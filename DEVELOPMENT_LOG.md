@@ -33,6 +33,6 @@
 
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
-- **Change:** Added `app.py` with two local dashboard views: an offline 3 km study-area illustration with a zoomed hypothetical network inset, and a larger pipeline topology view with the normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README.
-- **Decision:** No satellite tiles or online map services are used. The background shapes, pipeline topology, and zone locations are explicitly labeled illustrative because the model does not use real UOW or city infrastructure data.
-- **Status:** Dashboard view implementation added; launch and visual review pending. The highlighted fault control is a visual aid only and is not connected to a classifier.
+- **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.
+- **Decision:** Satellite tiles are used only as geographic context. The circle, pipeline overlay, and zone locations are explicitly labeled illustrative because the model does not use real UOW or city infrastructure data. API keys are stored locally and must not be committed.
+- **Status:** Dashboard view implementation added; satellite-key setup and visual review pending. The highlighted fault control is a visual aid only and is not connected to a classifier.

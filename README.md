@@ -49,4 +49,6 @@ Start the local dashboard with:
 .\.venv\Scripts\python.exe -m streamlit run .\app.py
 ```
 
-The dashboard currently contains an offline 3 km study-area illustration and a separate hypothetical pipeline view with the normal baseline readings. It does not use satellite imagery, online map tiles, real UOW infrastructure, or a trained classifier yet.
+The dashboard contains a study-area view and a separate hypothetical pipeline view with the normal baseline readings. The study-area view can display Google satellite imagery with simulated pipe overlays when a Google Maps JavaScript API key is configured; without a key, it falls back to the offline illustration. The simulated pipes are not real UOW infrastructure, and the classifier is not connected yet.
+
+To enable satellite imagery, copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` and add your Google Maps API key there. Keep the real `secrets.toml` out of GitHub. Google requires an API key for Maps JavaScript API; billing must be enabled for a standard key. A restricted no-cost demo key is also available for prototyping. See [Google Maps API key setup](https://developers.google.com/maps/documentation/javascript/get-api-key) and [demo key setup](https://developers.google.com/maps/documentation/javascript/demo-key).

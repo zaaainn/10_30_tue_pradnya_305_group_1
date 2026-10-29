@@ -1,8 +1,10 @@
 """Streamlit prototype views for the synthetic UOW Dubai study area."""
 
+import json
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 st.set_page_config(page_title="Urban Irrigation Twin", page_icon="💧", layout="wide")
@@ -95,6 +97,51 @@ def draw_network(ax: plt.Axes, show_measurements: bool = True, fault_zone: str |
     ax.axis("off")
 
 
+def render_google_satellite(api_key: str) -> None:
+    """Embed Google satellite imagery and clearly hypothetical network overlays."""
+    key = json.dumps(api_key)
+    html = f"""
+    <!doctype html><html><head><meta charset="utf-8">
+    <style>html,body,#map{{height:100%;width:100%;margin:0;font-family:Arial,sans-serif}}
+    .notice{{position:absolute;z-index:2;left:12px;top:12px;max-width:360px;padding:10px 13px;
+    background:#fff;border-radius:8px;box-shadow:0 2px 10px #0003;color:#17354a;font-size:13px;line-height:1.4}}</style>
+    </head><body><div id="map"></div><div class="notice"><b>Satellite context only.</b><br>
+    Green and blue lines show a hypothetical simulation network, not real UOW or city pipes.</div>
+    <script>
+    function initMap() {{
+      const campus = {{lat: 25.10143, lng: 55.16267}};
+      const map = new google.maps.Map(document.getElementById('map'), {{
+        center: campus, zoom: 15, mapTypeId: 'satellite', mapTypeControl: true,
+        streetViewControl: false, fullscreenControl: true
+      }});
+      new google.maps.Circle({{map, center: campus, radius: 3000, strokeColor: '#39a7e0',
+        strokeOpacity: 0.9, strokeWeight: 2, fillColor: '#39a7e0', fillOpacity: 0.06}});
+      const pts = {{
+        Source: {{lat: 25.10143, lng: 55.15990}},
+        Manifold: campus,
+        'Zone A': {{lat: 25.10368, lng: 55.16267}},
+        'Zone B': {{lat: 25.10143, lng: 55.16544}},
+        'Zone C': {{lat: 25.09918, lng: 55.16267}}
+      }};
+      new google.maps.Marker({{map, position: campus, title: 'UOW Dubai reference point', label: 'UOW'}});
+      for (const name of ['Source', 'Zone A', 'Zone B', 'Zone C']) {{
+        new google.maps.Marker({{map, position: pts[name], title: name + ' (hypothetical)', label: name.replace('Zone ', '')}});
+      }}
+      const paths = [
+        {{path: [pts.Source, pts.Manifold], color: '#28a6df'}},
+        ...['Zone A', 'Zone B', 'Zone C'].map(name => ({{path: [pts.Manifold, pts[name]], color: '#20c997'}}))
+      ];
+      for (const item of paths) new google.maps.Polyline({{map, path: item.path,
+        geodesic: true, strokeColor: item.color, strokeOpacity: 0.95, strokeWeight: 5}});
+    }}
+    window.initMap = initMap;
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key={key}&callback=initMap"></script>
+    </body></html>
+    """
+    components.html(html, height=650, scrolling=False)
+
+
 st.title("Schedule-Aware Urban Irrigation Prototype")
 st.caption("Simulation-only demonstration • UOW Dubai is a geographic reference, not the source of real network data")
 st.warning("This screen is an illustrative diagram, not satellite imagery or a map of actual irrigation infrastructure.")
@@ -102,8 +149,17 @@ st.warning("This screen is an illustrative diagram, not satellite imagery or a m
 view = st.radio("Choose a view", ["Study area", "Pipeline view"], horizontal=True)
 
 if view == "Study area":
-    st.pyplot(draw_study_area(), use_container_width=True)
-    st.caption("The circle is a 3 km context radius. The background shapes and network positions are illustrative and are not to scale.")
+    try:
+        google_api_key = st.secrets.get("GOOGLE_MAPS_API_KEY", "")
+    except (KeyError, FileNotFoundError):
+        google_api_key = ""
+    if google_api_key:
+        render_google_satellite(google_api_key)
+        st.caption("Satellite imagery is supplied by Google Maps. The 3 km circle and pipeline overlay are for study context; simulated pipe positions are illustrative and do not represent real infrastructure.")
+    else:
+        st.info("To show Google satellite imagery, configure GOOGLE_MAPS_API_KEY in .streamlit/secrets.toml. The offline illustration is shown until then.")
+        st.pyplot(draw_study_area(), use_container_width=True)
+        st.caption("The offline background shapes and network positions are illustrative and are not to scale.")
 else:
     selected = st.selectbox("Highlight a hypothetical fault location", ["None", "Zone A", "Zone B", "Zone C"])
     fig, ax = plt.subplots(figsize=(11, 4.8))
