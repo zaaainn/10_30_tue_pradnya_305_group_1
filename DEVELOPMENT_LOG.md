@@ -69,6 +69,16 @@
 - **Limitations:** Fault coefficients and clog demand reductions are simplified synthetic settings. Results describe these model scenarios, not calibrated field performance. Dataset rows sharing a `Scenario_ID` should be kept in the same partition for any later model evaluation.
 - **Status:** Member 1 scenario coverage and the requested labeled dataset with data dictionary are implemented. ML training and threshold comparison are not part of this update.
 
+## 2026-10-29 — Random Forest model and schedule-aware threshold baseline
+
+- **Change:** Added `train_model.py`, `diagnosis.py`, and `predict_diagnosis.py`. The Random Forest predicts condition and, for predicted faults, the likely zone. The model bundle is saved to `models/random_forest_diagnosis.joblib`.
+- **Training split:** The complete night schedule is held out; morning and afternoon records are used for training. The split keeps each `Scenario_ID` together and tests generalization to a schedule absent from training.
+- **Initial held-out results:** On 114 night records, condition accuracy was 0.851 and macro F1 was 0.794. Fault-location accuracy on night fault records was 0.778. The night test contains only six normal records, so the normal-class recall estimate is especially limited (0.50); these results are preliminary and apply only to this synthetic dataset.
+- **Threshold baseline:** Added `schedule_aware_threshold.py` and `THRESHOLD_METHOD.md`. It compares each zone's readings with the normal expectation for the same schedule and hour. Initial tolerances are the larger of 0.5 L/min or 5% for flow, and the larger of 0.5 kPa or 0.1% for pressure. In the current run it produced 296 alerts across 342 records, including 63 readings labeled `unknown_fault`; the thresholds have not been tuned or evaluated against field data.
+- **Prediction artifacts:** The model prediction run produced 342 rows in `outputs/random_forest_predictions.csv`; threshold output was saved to `outputs/threshold_predictions.csv`. These run outputs remain local.
+- **Verification:** Python syntax compilation succeeded, the model trained and saved, the prediction script completed, and the threshold script generated outputs.
+- **Status:** Model and baseline implementations are available for group review. A controlled comparison and broader evaluation remain to be completed.
+
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
 - **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.

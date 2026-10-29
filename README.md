@@ -62,6 +62,30 @@ Generate normal, leak, and clog data for every schedule, zone, and severity:
 
 This creates 342 schedule-hour records from 57 scenario configurations and saves the shared dataset to `outputs/labeled_fault_scenarios.csv`. Column meanings and split guidance are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md).
 
+## Random Forest model
+
+Train and save the condition and fault-location models:
+
+```powershell
+.\.venv\Scripts\python.exe .\train_model.py
+```
+
+The script holds out the entire night profile for a schedule-generalization check, then saves both model pipelines in `models/random_forest_diagnosis.joblib`. Generate predictions for the dataset with:
+
+```powershell
+.\.venv\Scripts\python.exe .\predict_diagnosis.py
+```
+
+## Schedule-aware threshold baseline
+
+Run the documented pressure/flow rule baseline on the same scenario data:
+
+```powershell
+.\.venv\Scripts\python.exe .\schedule_aware_threshold.py
+```
+
+The logic and initial tolerances are documented in [THRESHOLD_METHOD.md](THRESHOLD_METHOD.md). Both model and threshold prediction CSVs are written under `outputs/` for development use.
+
 ## Streamlit prototype views
 
 Start the local dashboard with:
