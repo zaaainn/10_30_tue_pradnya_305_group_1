@@ -88,6 +88,12 @@
 - **Limitations:** The held-out set has only six normal records, so the false-alert rate and normal-class results are highly sensitive to individual cases. All data are synthetic; these preliminary figures do not establish performance on real networks. Processing timing is backend time per record and excludes dashboard rendering and user selection.
 - **Verification:** The comparison script completed and wrote the prediction and metric outputs. Python syntax compilation succeeded for the dashboard, comparison, and threshold modules. Dashboard visual review remains pending.
 
+## 2026-10-29 — Member 1 pipeline and scenario interface review
+
+- **Dashboard review:** Opened the local Streamlit prototype and checked the pipeline view. The three-zone topology and baseline readings render; selecting Zone B highlights its marker while the other zones remain visible. The dashboard caption identifies the topology and readings as simulated.
+- **Scenario interface review:** Ran a moderate Zone A leak scenario for the afternoon schedule across all six hours. The generator returned six hourly records for all three zones, with the selected fault label and synthetic-data source recorded.
+- **Outcome:** Both interfaces behaved as expected in this review; no code change was required. The scenario run was a functional check of simulated output, not validation against a real irrigation network.
+
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
 - **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.
