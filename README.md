@@ -5,9 +5,12 @@ This repository contains a simulation-based university prototype for distinguish
 ## Scope
 
 - The study area is a 3 km radius around UOW Dubai, used as geographic context only.
-- The simulated irrigation network is an assumed three-zone network. It does not represent the university's real pipes or irrigation equipment.
+- The simulated irrigation network has three generic irrigation sectors (Zones A, B, and C). They are not mapped to named parks and do not represent the university's real pipes or irrigation equipment.
+- `uow_study_area_map.html` is a self-contained offline schematic showing the 3 km study radius and hypothetical node locations. It does not use street-map tiles or represent actual pipe locations.
+- UOW Dubai is used only as a geographic reference point; its official contact page lists the campus address in Dubai Knowledge Park: [UOW Dubai contact page](https://www.uowdubai.ac.ae/contact-us).
 - The intended model inputs are simulated pressure, flow, and watering-schedule information.
 - The classifier will be compared with a schedule-aware threshold alert using the same test scenarios.
+- Pipe dimensions and demands are prototype assumptions selected to produce visible simulated hydraulic changes; they are not calibrated field values.
 
 ## Setup
 

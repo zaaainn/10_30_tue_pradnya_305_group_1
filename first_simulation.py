@@ -8,42 +8,57 @@ import pandas as pd
 import wntr
 
 
+# Schematic local coordinates in metres, with the UOW Dubai campus as (0, 0).
+# These are for a diagram only; no external map coordinates are used.
+UOWD_CENTER = (0.0, 0.0)
+MAP_NODES = {
+    "Source": (-250.0, 0.0),
+    "Manifold": UOWD_CENTER,
+    "Zone_A": (0.0, 250.0),
+    "Zone_B": (250.0, 0.0),
+    "Zone_C": (0.0, -250.0),
+}
+
+
 def build_network() -> wntr.network.WaterNetworkModel:
     network = wntr.network.WaterNetworkModel()
 
     # A simple morning demand pattern: water the zones during hours 0 to 3.
     network.add_pattern("morning", [0.7, 1.0, 1.0, 1.0, 0.2, 0.0])
 
-    network.add_reservoir("Source", base_head=50.0, coordinates=(0.0, 0.0))
+    network.add_reservoir("Source", base_head=50.0, coordinates=MAP_NODES["Source"])
     network.add_junction(
-        "Manifold", base_demand=0.0, elevation=2.0, coordinates=(250.0, 0.0)
+        "Manifold", base_demand=0.0, elevation=2.0, coordinates=MAP_NODES["Manifold"]
     )
 
-    # Zone demand values are illustrative and expressed in m^3/s.
+    # Zones A-C are generic simulated irrigation sectors, not named real parks.
+    # Demand values are illustrative and expressed in m^3/s.
     zones = [
-        ("Zone_A", "Branch_A", 0.00020, 250.0, 100.0),
-        ("Zone_B", "Branch_B", 0.00022, 250.0, 0.0),
-        ("Zone_C", "Branch_C", 0.00018, 250.0, -100.0),
+        ("Zone_A", "Branch_A", 0.00020),
+        ("Zone_B", "Branch_B", 0.00022),
+        ("Zone_C", "Branch_C", 0.00018),
     ]
-    for zone_name, _, demand, x_coord, y_coord in zones:
+    for zone_name, _, demand in zones:
         network.add_junction(
             zone_name,
             base_demand=demand,
             demand_pattern="morning",
             elevation=5.0,
-            coordinates=(x_coord, y_coord),
+            coordinates=MAP_NODES[zone_name],
         )
 
+    # Assumed pipe sizes are chosen to produce measurable hydraulic responses
+    # at the prototype's illustrative flow rates; they are not field data.
     network.add_pipe(
-        "Main", "Source", "Manifold", length=250.0, diameter=0.20, roughness=120.0
+        "Main", "Source", "Manifold", length=250.0, diameter=0.10, roughness=120.0
     )
-    for zone_name, branch_name, _, _, _ in zones:
+    for zone_name, branch_name, _ in zones:
         network.add_pipe(
             branch_name,
             "Manifold",
             zone_name,
             length=250.0,
-            diameter=0.10,
+            diameter=0.035,
             roughness=120.0,
         )
 
