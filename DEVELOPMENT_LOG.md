@@ -49,9 +49,16 @@
 
 - **Change:** Added `watering_scenarios.py` to simulate every hourly demand multiplier in the morning, afternoon, and night profiles for Zones A, B, and C. It records scenario ID, schedule, hour, demand multiplier, normal label, zone, pressure, flow, and synthetic-data source in CSV format. A `--schedule` option allows one profile to be generated at a time.
 - **Output:** The default run produces 54 labeled zone-reading rows (3 schedules × 6 hours × 3 zones) in `outputs/normal_watering_scenarios.csv`.
-- **Repository decision:** Added `outputs/` and `work/` to `.gitignore`; generated output files and temporary authoring files remain local and are not part of the GitHub source history.
-- **Run evidence:** The user environment's project Python ran the script successfully. It created 54 rows across the three profiles, six hours, and three zones, and saved the CSV locally at `outputs/normal_watering_scenarios.csv`.
+- **Repository decision:** `outputs/` and `work/` are ignored by default. The baseline CSV `outputs/normal_watering_scenarios.csv` is included as the shared sample dataset; other generated output files and temporary authoring files remain local.
+- **Run evidence:** The project Python ran the script successfully. It created 54 rows across the three profiles, six hours, and three zones, and saved the CSV at `outputs/normal_watering_scenarios.csv`.
 - **Status:** Normal watering-scenario generation is implemented and run. Leak/clog scenarios across all six hours and all locations remain for later expansion.
+
+## 2026-10-29 — Dataset view for the group dashboard
+
+- **Change:** Added a `Watering data` dashboard view with schedule filtering, a complete table, summary counts, and CSV download. The dataset view identifies the readings as WNTR-generated simulation outputs.
+- **Shared data:** The generated normal dataset contains 54 rows and 11 columns: three schedules, six simulated hours, and three zones. The canonical CSV is included as `outputs/normal_watering_scenarios.csv`; other generated outputs remain ignored.
+- **Verification:** Python syntax compilation succeeded for `app.py` and `watering_scenarios.py`. The CSV was read back and confirmed to contain the expected 54 rows, three schedule names, three zones, and normal-operation label.
+- **Status:** Ready for group demonstration. The web dashboard itself has not been visually reviewed in a browser during this turn.
 
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
