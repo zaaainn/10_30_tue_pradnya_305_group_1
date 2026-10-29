@@ -86,7 +86,7 @@
 - **Preliminary comparison:** Random Forest: accuracy 0.851, macro F1 0.794, fault-location accuracy 0.778, missed-fault rate 0.000, false-alert rate 0.500. Schedule-aware threshold: accuracy 0.711, macro F1 0.775, fault-location accuracy 0.954, missed-fault rate 0.046, false-alert rate 0.000. For mild, moderate, and severe clogs, respectively, recall was 0.611, 0.667, and 0.944 for Random Forest, and 0.389, 0.556, and 0.667 for the threshold method.
 - **Dashboard integration:** Added a Method comparison view showing metric summaries, per-class precision/recall, clog recall by severity, and filterable held-out row predictions from both methods. The pipeline view points users to this diagnosis view.
 - **Limitations:** The held-out set has only six normal records, so the false-alert rate and normal-class results are highly sensitive to individual cases. All data are synthetic; these preliminary figures do not establish performance on real networks. Processing timing is backend time per record and excludes dashboard rendering and user selection.
-- **Verification:** The comparison script completed and wrote the prediction and metric outputs. Python syntax compilation succeeded for the dashboard, comparison, and threshold modules. Dashboard visual review remains pending.
+- **Verification:** The comparison script completed and wrote the prediction and metric outputs. Python syntax compilation succeeded for the dashboard, comparison, and threshold modules. The pipeline view was visually reviewed in the later Member 1 interface review; visual review of the Method comparison view remains pending.
 
 ## 2026-10-29 — Member 1 pipeline and scenario interface review
 
@@ -104,4 +104,9 @@
 
 - **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.
 - **Decision:** Satellite tiles are used only as geographic context. The circle, pipeline overlay, and zone locations are explicitly labeled illustrative because the model does not use real UOW or city infrastructure data. API keys are stored locally and must not be committed.
-- **Status:** Study-area and pipeline views remain available; the separate Method comparison view now shows classifier and threshold diagnoses. Satellite-key setup and visual review remain pending.
+- **Status:** Study-area and pipeline views remain available; the separate Method comparison view now shows classifier and threshold diagnoses. Satellite-key setup and study-area visual review remain pending.
+
+## 2026-10-29 — Member 1 review commits pushed
+
+- **Version history:** Commits `42d4577` (pipeline and scenario interface review) and `3a19017` (hydraulic response review and edge case) were pushed to the shared GitHub repository by the user.
+- **Status:** Group feedback on the simulated fault responses and zero-demand clog case remains pending.
