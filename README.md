@@ -42,6 +42,16 @@ Run normal, leak, and clog cases at Zone B for all three schedule profiles and m
 
 This comparison uses illustrative leak emitter coefficients and reduced zone demand as a simple clog surrogate. These fault settings require further review before they are used to generate classifier training data.
 
+## Normal watering scenarios
+
+Generate the full six-hour normal-operation readings for all schedules and zones:
+
+```powershell
+.\.venv\Scripts\python.exe .\watering_scenarios.py
+```
+
+To generate only one profile, add `--schedule morning`, `--schedule afternoon`, or `--schedule night`. The script saves a labelled CSV in the local `outputs/` folder. That folder is ignored by Git so generated development data is not uploaded with source code.
+
 ## Streamlit prototype views
 
 Start the local dashboard with:

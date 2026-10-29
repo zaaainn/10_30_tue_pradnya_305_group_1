@@ -45,6 +45,14 @@
 - **Reason:** The same prototype should support local development and a later hosted demonstration without storing the Google key in source code or GitHub.
 - **Status:** Deployment preparation only; the app has not been deployed to Render.
 
+## 2026-10-29 — Full normal watering-cycle scenarios
+
+- **Change:** Added `watering_scenarios.py` to simulate every hourly demand multiplier in the morning, afternoon, and night profiles for Zones A, B, and C. It records scenario ID, schedule, hour, demand multiplier, normal label, zone, pressure, flow, and synthetic-data source in CSV format. A `--schedule` option allows one profile to be generated at a time.
+- **Output:** The default run produces 54 labeled zone-reading rows (3 schedules × 6 hours × 3 zones) in `outputs/normal_watering_scenarios.csv`.
+- **Repository decision:** Added `outputs/` and `work/` to `.gitignore`; generated output files and temporary authoring files remain local and are not part of the GitHub source history.
+- **Run evidence:** The user environment's project Python ran the script successfully. It created 54 rows across the three profiles, six hours, and three zones, and saved the CSV locally at `outputs/normal_watering_scenarios.csv`.
+- **Status:** Normal watering-scenario generation is implemented and run. Leak/clog scenarios across all six hours and all locations remain for later expansion.
+
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
 - **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.
