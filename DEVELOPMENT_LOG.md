@@ -39,6 +39,12 @@
 - **Current scope:** Fault cases still target Zone B only. The dataset generator will need to cover other fault locations and export labeled records; that is separate from adding schedule options to this simulation step.
 - **Limitations:** Schedules and fault parameters are synthetic assumptions. No observed UOW or municipal irrigation schedule or measurement is used.
 
+## 2026-10-29 — Prepared app for future Render deployment
+
+- **Change:** Updated the Streamlit map view to read `GOOGLE_MAPS_API_KEY` from an environment variable as well as local Streamlit secrets. Added future Render build/start command guidance to the README.
+- **Reason:** The same prototype should support local development and a later hosted demonstration without storing the Google key in source code or GitHub.
+- **Status:** Deployment preparation only; the app has not been deployed to Render.
+
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
 - **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.

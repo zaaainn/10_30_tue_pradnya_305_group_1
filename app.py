@@ -1,6 +1,7 @@
 """Streamlit prototype views for the synthetic UOW Dubai study area."""
 
 import json
+import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
 import streamlit as st
@@ -149,10 +150,11 @@ st.warning("This screen is an illustrative diagram, not satellite imagery or a m
 view = st.radio("Choose a view", ["Study area", "Pipeline view"], horizontal=True)
 
 if view == "Study area":
+    google_api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
     try:
-        google_api_key = st.secrets.get("GOOGLE_MAPS_API_KEY", "")
+        google_api_key = google_api_key or st.secrets.get("GOOGLE_MAPS_API_KEY", "")
     except (KeyError, FileNotFoundError):
-        google_api_key = ""
+        pass
     if google_api_key:
         render_google_satellite(google_api_key)
         st.caption("Satellite imagery is supplied by Google Maps. The 3 km circle and pipeline overlay are for study context; simulated pipe positions are illustrative and do not represent real infrastructure.")
