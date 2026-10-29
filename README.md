@@ -40,3 +40,13 @@ Run the initial same-schedule leak and clog comparison at Zone B:
 ```
 
 This first comparison uses illustrative leak emitter coefficients and reduced zone demand as a simple clog surrogate. These fault settings require further review before they are used to generate classifier training data.
+
+## Streamlit prototype views
+
+Start the local dashboard with:
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run .\app.py
+```
+
+The dashboard currently contains an offline 3 km study-area illustration and a separate hypothetical pipeline view with the normal baseline readings. It does not use satellite imagery, online map tiles, real UOW infrastructure, or a trained classifier yet.

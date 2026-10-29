@@ -30,3 +30,9 @@
 - **Limitations:** These are illustrative synthetic parameters, not calibrated pipe sizes or field measurements. The group should review the assumptions and note that performance conclusions apply only to these simulated conditions.
 - **Run evidence:** The user ran both scripts successfully. Normal Zone B was 433.33 kPa and 13.20 L/min. Leak cases ranged from 431.98 kPa and 14.39 L/min (mild) to 425.66 kPa and 19.13 L/min (severe). Clog cases ranged from 435.97 kPa and 10.56 L/min (mild) to 440.30 kPa and 3.96 L/min (severe). Zone A/C normal readings were 434.57/435.71 kPa with flows of 12.0/10.8 L/min.
 - **Status:** Step 1 confirmed by a successful user run. The parameters remain illustrative assumptions, not field-calibrated values.
+
+## 2026-10-29 — Streamlit study-area and pipeline views
+
+- **Change:** Added `app.py` with two local dashboard views: an offline 3 km study-area illustration with a zoomed hypothetical network inset, and a larger pipeline topology view with the normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README.
+- **Decision:** No satellite tiles or online map services are used. The background shapes, pipeline topology, and zone locations are explicitly labeled illustrative because the model does not use real UOW or city infrastructure data.
+- **Status:** Dashboard view implementation added; launch and visual review pending. The highlighted fault control is a visual aid only and is not connected to a classifier.
