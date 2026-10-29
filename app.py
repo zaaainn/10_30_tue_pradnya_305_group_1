@@ -177,6 +177,12 @@ def render_esri_satellite(api_key: str) -> None:
       }}
 
       function addSimulationOverlays() {{
+        if (map.__simulationOverlaysAdded) return;
+        if (!map.isStyleLoaded() || Object.keys(map.getStyle().sources || {{}}).length === 0) {{
+          map.once("style.load", addSimulationOverlays);
+          return;
+        }}
+        map.__simulationOverlaysAdded = true;
         map.addSource("study-radius", {{type: "geojson", data: makeCircle(campus, 3000)}});
         map.addLayer({{id: "study-radius-fill", type: "fill", source: "study-radius", paint: {{"fill-color": "#39a7e0", "fill-opacity": 0.06}}}});
         map.addLayer({{id: "study-radius-outline", type: "line", source: "study-radius", paint: {{"line-color": "#39a7e0", "line-width": 2, "line-opacity": 0.9}}}});
@@ -192,6 +198,7 @@ def render_esri_satellite(api_key: str) -> None:
         map.addLayer({{id: "network-points", type: "circle", source: "hypothetical-network", filter: ["==", ["geometry-type"], "Point"], paint: {{"circle-radius": ["match", ["get", "kind"], "manifold", 8, "source", 7, 7], "circle-color": ["match", ["get", "kind"], "source", "#e2a13a", "manifold", "#17354a", "#20c997"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 2}}}});
         map.addLayer({{id: "network-labels", type: "symbol", source: "hypothetical-network", filter: ["==", ["geometry-type"], "Point"], layout: {{"text-field": ["get", "name"], "text-size": 13, "text-offset": [0, 1.4], "text-anchor": "top", "text-allow-overlap": true}}, paint: {{"text-color": "#ffffff", "text-halo-color": "#17354a", "text-halo-width": 1.5}}}});
       }}
+      map.on("style.load", addSimulationOverlays);
       basemapStyle.on("BasemapStyleLoad", addSimulationOverlays);
     </script>
     </body></html>

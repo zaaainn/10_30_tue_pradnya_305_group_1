@@ -116,3 +116,9 @@
 - **Change:** Replaced the Google Maps JavaScript view with Esri ArcGIS imagery through MapLibre and Esri's supported MapLibre plugin. The satellite view retains the illustrative 3 km circle, hypothetical source/manifold/zones, and clear simulation-only notices.
 - **Configuration:** Changed the local/Render setting to `ARCGIS_API_KEY` and updated the example secrets file and README setup instructions. The offline illustration remains available when no Esri key is configured.
 - **Verification:** Python syntax compilation and Git whitespace checks succeeded. Live Esri imagery could not be visually verified because an ArcGIS access key with Basemaps access has not yet been configured in this environment.
+
+## 2026-10-29 — Wait for Esri basemap before drawing overlays
+
+- **Finding:** The user's screenshot confirmed that Esri satellite tiles and attribution loaded, but the 3 km ring and hypothetical network overlays were absent.
+- **Change:** Updated the map to add the ring, links, and zone markers only after the Esri style is loaded and ready for overlays.
+- **Verification:** Python syntax compilation and `git diff --check` passed. Visual confirmation of the overlays is pending a browser refresh.
