@@ -117,46 +117,83 @@ def draw_network(ax: plt.Axes, show_measurements: bool = True, fault_zone: str |
     ax.axis("off")
 
 
-def render_google_satellite(api_key: str) -> None:
-    """Embed Google satellite imagery and clearly hypothetical network overlays."""
+def render_esri_satellite(api_key: str) -> None:
+    """Embed Esri satellite imagery and clearly hypothetical network overlays."""
     key = json.dumps(api_key)
     html = f"""
     <!doctype html><html><head><meta charset="utf-8">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css">
     <style>html,body,#map{{height:100%;width:100%;margin:0;font-family:Arial,sans-serif}}
     .notice{{position:absolute;z-index:2;left:12px;top:12px;max-width:360px;padding:10px 13px;
-    background:#fff;border-radius:8px;box-shadow:0 2px 10px #0003;color:#17354a;font-size:13px;line-height:1.4}}</style>
+    background:#fff;border-radius:8px;box-shadow:0 2px 10px #0003;color:#17354a;font-size:13px;line-height:1.4}}
+    .map-error{{display:none;position:absolute;z-index:3;right:12px;top:12px;max-width:360px;padding:10px 13px;
+    background:#fff3cd;border-radius:8px;color:#604b00;font-size:13px;line-height:1.4}}</style>
     </head><body><div id="map"></div><div class="notice"><b>Satellite context only.</b><br>
     Green and blue lines show a hypothetical simulation network, not real UOW or city pipes.</div>
-    <script>
-    function initMap() {{
-      const campus = {{lat: 25.10143, lng: 55.16267}};
-      const map = new google.maps.Map(document.getElementById('map'), {{
-        center: campus, zoom: 15, mapTypeId: 'satellite', mapTypeControl: true,
-        streetViewControl: false, fullscreenControl: true
-      }});
-      new google.maps.Circle({{map, center: campus, radius: 3000, strokeColor: '#39a7e0',
-        strokeOpacity: 0.9, strokeWeight: 2, fillColor: '#39a7e0', fillOpacity: 0.06}});
-      const pts = {{
-        Source: {{lat: 25.10143, lng: 55.15990}},
-        Manifold: campus,
-        'Zone A': {{lat: 25.10368, lng: 55.16267}},
-        'Zone B': {{lat: 25.10143, lng: 55.16544}},
-        'Zone C': {{lat: 25.09918, lng: 55.16267}}
-      }};
-      new google.maps.Marker({{map, position: campus, title: 'UOW Dubai reference point', label: 'UOW'}});
-      for (const name of ['Source', 'Zone A', 'Zone B', 'Zone C']) {{
-        new google.maps.Marker({{map, position: pts[name], title: name + ' (hypothetical)', label: name.replace('Zone ', '')}});
-      }}
-      const paths = [
-        {{path: [pts.Source, pts.Manifold], color: '#28a6df'}},
-        ...['Zone A', 'Zone B', 'Zone C'].map(name => ({{path: [pts.Manifold, pts[name]], color: '#20c997'}}))
-      ];
-      for (const item of paths) new google.maps.Polyline({{map, path: item.path,
-        geodesic: true, strokeColor: item.color, strokeOpacity: 0.95, strokeWeight: 5}});
-    }}
-    window.initMap = initMap;
+    <div id="map-error" class="map-error">Esri imagery could not be loaded. Check the ArcGIS access key and its Basemaps permission.</div>
+    <script type="importmap">
+      {{"imports":{{
+        "maplibre-gl":"https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs",
+        "@esri/maplibre-arcgis":"https://unpkg.com/@esri/maplibre-arcgis@1.3.1/dist/esm/maplibre-arcgis.min.js"
+      }}}}
     </script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key={key}&callback=initMap"></script>
+    <script type="module">
+      import * as maplibregl from "maplibre-gl";
+      import * as maplibreArcGIS from "@esri/maplibre-arcgis";
+
+      const accessToken = {key};
+      const campus = [55.16267, 25.10143];
+      const points = {{
+        Source: [55.15990, 25.10143],
+        Manifold: campus,
+        "Zone A": [55.16267, 25.10368],
+        "Zone B": [55.16544, 25.10143],
+        "Zone C": [55.16267, 25.09918]
+      }};
+      const map = new maplibregl.Map({{
+        container: "map", center: campus, zoom: 15,
+        style: {{version: 8, sources: {{}}, layers: [{{id: "background", type: "background", paint: {{"background-color": "#17212b"}}}}]}}
+      }});
+      map.addControl(new maplibregl.NavigationControl(), "top-right");
+      map.addControl(new maplibregl.FullscreenControl(), "top-right");
+      map.on("error", () => {{ document.getElementById("map-error").style.display = "block"; }});
+      const basemapStyle = maplibreArcGIS.BasemapStyle.applyStyle(map, {{style: "arcgis/imagery", token: accessToken}});
+      basemapStyle.on("BasemapStyleError", () => {{ document.getElementById("map-error").style.display = "block"; }});
+
+      function makeCircle(center, radiusMeters, steps = 96) {{
+        const [longitude, latitude] = center;
+        const earthRadius = 6378137;
+        const lat1 = latitude * Math.PI / 180;
+        const lon1 = longitude * Math.PI / 180;
+        const angularDistance = radiusMeters / earthRadius;
+        const coordinates = [];
+        for (let i = 0; i <= steps; i++) {{
+          const bearing = 2 * Math.PI * i / steps;
+          const lat2 = Math.asin(Math.sin(lat1) * Math.cos(angularDistance) + Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing));
+          const lon2 = lon1 + Math.atan2(Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1), Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2));
+          coordinates.push([lon2 * 180 / Math.PI, lat2 * 180 / Math.PI]);
+        }}
+        return {{type: "Feature", properties: {{}}, geometry: {{type: "Polygon", coordinates: [coordinates]}}}};
+      }}
+
+      function addSimulationOverlays() {{
+        map.addSource("study-radius", {{type: "geojson", data: makeCircle(campus, 3000)}});
+        map.addLayer({{id: "study-radius-fill", type: "fill", source: "study-radius", paint: {{"fill-color": "#39a7e0", "fill-opacity": 0.06}}}});
+        map.addLayer({{id: "study-radius-outline", type: "line", source: "study-radius", paint: {{"line-color": "#39a7e0", "line-width": 2, "line-opacity": 0.9}}}});
+
+        const features = [
+          {{type: "Feature", properties: {{kind: "feed"}}, geometry: {{type: "LineString", coordinates: [points.Source, points.Manifold]}}}},
+          ...["Zone A", "Zone B", "Zone C"].map(name => ({{type: "Feature", properties: {{kind: "branch"}}, geometry: {{type: "LineString", coordinates: [points.Manifold, points[name]]}}}})),
+          ...Object.entries(points).map(([name, coordinates]) => ({{type: "Feature", properties: {{name, kind: name === "Source" ? "source" : name === "Manifold" ? "manifold" : "zone"}}, geometry: {{type: "Point", coordinates}}}})),
+          {{type: "Feature", properties: {{name: "UOW reference"}}, geometry: {{type: "Point", coordinates: campus}}}}
+        ];
+        map.addSource("hypothetical-network", {{type: "geojson", data: {{type: "FeatureCollection", features}}}});
+        map.addLayer({{id: "network-lines", type: "line", source: "hypothetical-network", filter: ["==", ["geometry-type"], "LineString"], paint: {{"line-color": ["match", ["get", "kind"], "feed", "#28a6df", "#20c997"], "line-width": 5, "line-opacity": 0.95}}}});
+        map.addLayer({{id: "network-points", type: "circle", source: "hypothetical-network", filter: ["==", ["geometry-type"], "Point"], paint: {{"circle-radius": ["match", ["get", "kind"], "manifold", 8, "source", 7, 7], "circle-color": ["match", ["get", "kind"], "source", "#e2a13a", "manifold", "#17354a", "#20c997"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 2}}}});
+        map.addLayer({{id: "network-labels", type: "symbol", source: "hypothetical-network", filter: ["==", ["geometry-type"], "Point"], layout: {{"text-field": ["get", "name"], "text-size": 13, "text-offset": [0, 1.4], "text-anchor": "top", "text-allow-overlap": true}}, paint: {{"text-color": "#ffffff", "text-halo-color": "#17354a", "text-halo-width": 1.5}}}});
+      }}
+      basemapStyle.on("BasemapStyleLoad", addSimulationOverlays);
+    </script>
     </body></html>
     """
     components.html(html, height=650, scrolling=False)
@@ -164,21 +201,21 @@ def render_google_satellite(api_key: str) -> None:
 
 st.title("Schedule-Aware Urban Irrigation Prototype")
 st.caption("Three-zone irrigation fault-diagnosis prototype • synthetic network and readings")
-st.info("Google satellite imagery, when enabled, is geographic context only. Pipe locations and sensor readings are generated by the simulation, not taken from UOW infrastructure.")
+st.info("Esri satellite imagery, when enabled, is geographic context only. Pipe locations and sensor readings are generated by the simulation, not taken from UOW infrastructure.")
 
 view = st.radio("Choose a view", ["Study area", "Pipeline view", "Watering data", "Method comparison"], horizontal=True)
 
 if view == "Study area":
-    google_api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+    arcgis_api_key = os.environ.get("ARCGIS_API_KEY", "").strip()
     try:
-        google_api_key = google_api_key or st.secrets.get("GOOGLE_MAPS_API_KEY", "")
+        arcgis_api_key = arcgis_api_key or st.secrets.get("ARCGIS_API_KEY", "")
     except (KeyError, FileNotFoundError):
         pass
-    if google_api_key:
-        render_google_satellite(google_api_key)
-        st.caption("Satellite imagery is supplied by Google Maps. The 3 km circle and pipeline overlay are for study context; simulated pipe positions are illustrative and do not represent real infrastructure.")
+    if arcgis_api_key:
+        render_esri_satellite(arcgis_api_key)
+        st.caption("Satellite imagery is supplied by Esri ArcGIS. The 3 km circle and pipeline overlay are for study context; simulated pipe positions are illustrative and do not represent real infrastructure.")
     else:
-        st.info("To show Google satellite imagery, configure GOOGLE_MAPS_API_KEY in .streamlit/secrets.toml. The offline illustration is shown until then.")
+        st.info("To show Esri satellite imagery, configure ARCGIS_API_KEY in .streamlit/secrets.toml. The offline illustration is shown until then.")
         st.pyplot(draw_study_area(), use_container_width=True)
         st.caption("The offline background shapes and network positions are illustrative and are not to scale.")
 elif view == "Pipeline view":

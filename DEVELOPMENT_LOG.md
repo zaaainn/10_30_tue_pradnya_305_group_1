@@ -110,3 +110,9 @@
 
 - **Version history:** Commits `42d4577` (pipeline and scenario interface review) and `3a19017` (hydraulic response review and edge case) were pushed to the shared GitHub repository by the user.
 - **Status:** Group feedback on the simulated fault responses and zero-demand clog case remains pending.
+
+## 2026-10-29 — Replace Google satellite view with Esri imagery
+
+- **Change:** Replaced the Google Maps JavaScript view with Esri ArcGIS imagery through MapLibre and Esri's supported MapLibre plugin. The satellite view retains the illustrative 3 km circle, hypothetical source/manifold/zones, and clear simulation-only notices.
+- **Configuration:** Changed the local/Render setting to `ARCGIS_API_KEY` and updated the example secrets file and README setup instructions. The offline illustration remains available when no Esri key is configured.
+- **Verification:** Python syntax compilation and Git whitespace checks succeeded. Live Esri imagery could not be visually verified because an ArcGIS access key with Basemaps access has not yet been configured in this environment.
