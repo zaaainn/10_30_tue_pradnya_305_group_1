@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.py[cod]
+temp.bin
+temp.inp
+temp.rpt
+.streamlit/secrets.toml
