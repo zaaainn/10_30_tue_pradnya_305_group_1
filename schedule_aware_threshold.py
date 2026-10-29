@@ -30,6 +30,7 @@ def build_normal_baseline(data: pd.DataFrame) -> pd.DataFrame:
 
 def predict_thresholds(
     data: pd.DataFrame,
+    baseline_data: pd.DataFrame | None = None,
     flow_fraction: float = 0.05,
     min_flow_tolerance_l_min: float = 0.5,
     pressure_fraction: float = 0.001,
@@ -41,7 +42,8 @@ def predict_thresholds(
     with a pressure rise suggests a clog. Other out-of-band readings are alerted
     as an unknown fault pattern rather than assigned a guessed fault type.
     """
-    baseline = build_normal_baseline(data).set_index(["Schedule", "Hour"])
+    reference_data = data if baseline_data is None else baseline_data
+    baseline = build_normal_baseline(reference_data).set_index(["Schedule", "Hour"])
     results: list[dict[str, object]] = []
 
     for _, row in data.iterrows():

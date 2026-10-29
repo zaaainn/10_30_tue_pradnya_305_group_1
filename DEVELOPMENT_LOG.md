@@ -79,8 +79,17 @@
 - **Verification:** Python syntax compilation succeeded, the model trained and saved, the prediction script completed, and the threshold script generated outputs.
 - **Status:** Model and baseline implementations are available for group review. A controlled comparison and broader evaluation remain to be completed.
 
+## 2026-10-29 — Method comparison and dashboard integration
+
+- **Change:** Added `evaluate_methods.py` to run the Random Forest and schedule-aware threshold against the same 114 night-schedule records, held out from Random Forest training. It saves row-level predictions and a metric summary under the ignored local `outputs/` directory.
+- **Measures:** Reports condition accuracy and macro F1, per-class precision and recall, fault-location accuracy, missed-fault rate, false-alert rate, clog recall by mild, moderate, and severe test conditions, and average backend processing time per record.
+- **Preliminary comparison:** Random Forest: accuracy 0.851, macro F1 0.794, fault-location accuracy 0.778, missed-fault rate 0.000, false-alert rate 0.500. Schedule-aware threshold: accuracy 0.711, macro F1 0.775, fault-location accuracy 0.954, missed-fault rate 0.046, false-alert rate 0.000. For mild, moderate, and severe clogs, respectively, recall was 0.611, 0.667, and 0.944 for Random Forest, and 0.389, 0.556, and 0.667 for the threshold method.
+- **Dashboard integration:** Added a Method comparison view showing metric summaries, per-class precision/recall, clog recall by severity, and filterable held-out row predictions from both methods. The pipeline view points users to this diagnosis view.
+- **Limitations:** The held-out set has only six normal records, so the false-alert rate and normal-class results are highly sensitive to individual cases. All data are synthetic; these preliminary figures do not establish performance on real networks. Processing timing is backend time per record and excludes dashboard rendering and user selection.
+- **Verification:** The comparison script completed and wrote the prediction and metric outputs. Python syntax compilation succeeded for the dashboard, comparison, and threshold modules. Dashboard visual review remains pending.
+
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
 - **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.
 - **Decision:** Satellite tiles are used only as geographic context. The circle, pipeline overlay, and zone locations are explicitly labeled illustrative because the model does not use real UOW or city infrastructure data. API keys are stored locally and must not be committed.
-- **Status:** Dashboard view implementation added; satellite-key setup and visual review pending. The highlighted fault control is a visual aid only and is not connected to a classifier.
+- **Status:** Study-area and pipeline views remain available; the separate Method comparison view now shows classifier and threshold diagnoses. Satellite-key setup and visual review remain pending.
