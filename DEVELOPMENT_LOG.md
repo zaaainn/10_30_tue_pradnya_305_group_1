@@ -51,14 +51,23 @@
 - **Output:** The default run produces 54 labeled zone-reading rows (3 schedules × 6 hours × 3 zones) in `outputs/normal_watering_scenarios.csv`.
 - **Repository decision:** `outputs/` and `work/` are ignored by default. The baseline CSV `outputs/normal_watering_scenarios.csv` is included as the shared sample dataset; other generated output files and temporary authoring files remain local.
 - **Run evidence:** The project Python ran the script successfully. It created 54 rows across the three profiles, six hours, and three zones, and saved the CSV at `outputs/normal_watering_scenarios.csv`.
-- **Status:** Normal watering-scenario generation is implemented and run. Leak/clog scenarios across all six hours and all locations remain for later expansion.
+- **Status:** Normal watering-scenario generation is implemented and run. Full labeled leak/clog coverage is being added in the following entry.
 
 ## 2026-10-29 — Dataset view for the group dashboard
 
-- **Change:** Added a `Watering data` dashboard view with schedule filtering, a complete table, summary counts, and CSV download. The dataset view identifies the readings as WNTR-generated simulation outputs.
-- **Shared data:** The generated normal dataset contains 54 rows and 11 columns: three schedules, six simulated hours, and three zones. The canonical CSV is included as `outputs/normal_watering_scenarios.csv`; other generated outputs remain ignored.
-- **Verification:** Python syntax compilation succeeded for `app.py` and `watering_scenarios.py`. The CSV was read back and confirmed to contain the expected 54 rows, three schedule names, three zones, and normal-operation label.
-- **Status:** Ready for group demonstration. The web dashboard itself has not been visually reviewed in a browser during this turn.
+- **Change:** Added a `Watering data` dashboard view with schedule, condition, and fault-location filters, a complete table, summary counts, and CSV download. The dataset view identifies the readings as WNTR-generated simulation outputs.
+- **Shared data:** The normal-operation sample contains 54 rows in `outputs/normal_watering_scenarios.csv`. The larger labeled dataset is tracked separately in `outputs/labeled_fault_scenarios.csv` and documented in `DATA_DICTIONARY.md`.
+- **Verification:** The normal dataset was read back and confirmed to contain 54 rows, three schedules, and three zones. The expanded dataset is verified in the following entry.
+- **Status:** Dataset view is ready to display the full scenario file once it is generated.
+
+## 2026-10-29 — All-zone labeled fault scenario dataset
+
+- **Change:** Generalized `fault_scenarios.py` so a user can select condition, severity, schedule, zone, and hour range. Added `generate_labeled_dataset.py` to run normal, leak, and clog configurations across all three zones and all six hours for each watering profile. Added `DATA_DICTIONARY.md` and connected the dashboard table to the full labeled dataset with schedule, condition, and location filters.
+- **Dataset evidence:** The generator completed 57 configurations and 342 schedule-hour records: 18 normal, 162 leak, and 162 clog records. Each fault type covers Zones A, B, and C, with 54 records per zone and fault type. The dataset has 14 columns containing labels, schedule context, and three-zone pressure and flow features.
+- **Interface evidence:** A selected Zone A moderate leak for the afternoon profile produced six hourly readings through the scenario interface.
+- **Verification:** Python syntax compilation succeeded for the scenario interface, dataset generator, and dashboard. The generated CSV was read back and its row, column, configuration, condition, and location counts were confirmed.
+- **Limitations:** Fault coefficients and clog demand reductions are simplified synthetic settings. Results describe these model scenarios, not calibrated field performance. Dataset rows sharing a `Scenario_ID` should be kept in the same partition for any later model evaluation.
+- **Status:** Member 1 scenario coverage and the requested labeled dataset with data dictionary are implemented. ML training and threshold comparison are not part of this update.
 
 ## 2026-10-29 — Streamlit study-area and pipeline views
 

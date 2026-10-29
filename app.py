@@ -174,26 +174,36 @@ elif view == "Pipeline view":
     st.pyplot(fig, use_container_width=True)
     st.caption("Red highlight is a visual example only. Pipe connections and measurements are simulated; no classifier is connected yet.")
 else:
-    data_path = Path(__file__).parent / "outputs" / "normal_watering_scenarios.csv"
-    st.subheader("Normal watering schedule scenarios")
-    st.caption("WNTR-generated hydraulic simulation outputs. These are modeled readings, not physical sensor measurements.")
+    data_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
+    st.subheader("Labeled irrigation scenario dataset")
+    st.caption("WNTR-generated hydraulic readings across normal operation, leaks, and clogs.")
     if not data_path.exists():
-        st.error("The shared scenario CSV is missing. Run watering_scenarios.py to generate it.")
+        st.error("The labeled scenario CSV is missing. Run generate_labeled_dataset.py to create it.")
     else:
         dataset = pd.read_csv(data_path)
-        schedules = ["All"] + sorted(dataset["Schedule"].unique().tolist())
-        selected_schedule = st.selectbox("Filter by watering schedule", schedules)
-        displayed = dataset if selected_schedule == "All" else dataset[dataset["Schedule"] == selected_schedule]
+        f1, f2, f3 = st.columns(3)
+        selected_schedule = f1.selectbox("Schedule", ["All", *sorted(dataset["Schedule"].unique())])
+        selected_condition = f2.selectbox("Condition", ["All", *sorted(dataset["Condition"].unique())])
+        selected_location = f3.selectbox("Fault location", ["All", *sorted(dataset["Fault_Location"].unique())])
+
+        displayed = dataset.copy()
+        if selected_schedule != "All":
+            displayed = displayed[displayed["Schedule"] == selected_schedule]
+        if selected_condition != "All":
+            displayed = displayed[displayed["Condition"] == selected_condition]
+        if selected_location != "All":
+            displayed = displayed[displayed["Fault_Location"] == selected_location]
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("Reading rows", len(displayed))
-        c2.metric("Schedules", displayed["Schedule"].nunique())
-        c3.metric("Zones", displayed["Zone"].nunique())
+        c1.metric("Scenario-hour records", len(displayed))
+        c2.metric("Scenario configurations", displayed["Scenario_ID"].nunique())
+        c3.metric("Schedules", displayed["Schedule"].nunique())
 
-        st.dataframe(displayed, use_container_width=True, hide_index=True)
+        st.dataframe(displayed, use_container_width=True, hide_index=True, height=520)
+        st.caption("For field definitions, see `DATA_DICTIONARY.md`. Keep rows with the same Scenario_ID together when splitting data for later model evaluation.")
         st.download_button(
-            "Download displayed data as CSV",
+            "Download filtered data as CSV",
             data=displayed.to_csv(index=False).encode("utf-8"),
-            file_name="normal_watering_scenarios.csv",
+            file_name="labeled_fault_scenarios.csv",
             mime="text/csv",
         )

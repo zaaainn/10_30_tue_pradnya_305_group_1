@@ -1,91 +1,102 @@
-"""Compare a normal case with illustrative leak and clog cases at Zone B.
+"""Generate a selected WNTR irrigation scenario for any zone and schedule."""
 
-Fault values are synthetic starting assumptions for the prototype, not
-calibrated values or measurements from UOW Dubai.
-"""
+import argparse
 
 import pandas as pd
 import wntr
 
-from first_simulation import SCHEDULE_SAMPLE_HOUR, SCHEDULE_PROFILES, build_network
+from first_simulation import SCHEDULE_PROFILES, SCHEDULE_SAMPLE_HOUR, build_network
 
 
-FAULT_ZONE = "Zone_B"
+ZONES = [("Zone_A", "Branch_A"), ("Zone_B", "Branch_B"), ("Zone_C", "Branch_C")]
+SEVERITIES = ("mild", "moderate", "severe")
 
-# Emitter coefficients represent additional leak discharge at the selected
-# junction in the EPANET model. Values are deliberately illustrative.
-LEAK_EMITTER_COEFFICIENTS = {
-    "mild": 0.000003,
-    "moderate": 0.000008,
-    "severe": 0.000015,
-}
-
-# A clog is represented as reduced effective zone demand for this first test.
-CLOG_DEMAND_FACTORS = {
-    "mild": 0.80,
-    "moderate": 0.55,
-    "severe": 0.30,
-}
+# Illustrative leak emitter settings and clog demand multipliers.
+LEAK_EMITTER_COEFFICIENTS = {"mild": 0.000003, "moderate": 0.000008, "severe": 0.000015}
+CLOG_DEMAND_FACTORS = {"mild": 0.80, "moderate": 0.55, "severe": 0.30}
 
 
 def run_case(
-    condition: str, severity: str | None = None, schedule: str = "morning"
-) -> dict[str, object]:
+    condition: str,
+    severity: str | None = None,
+    schedule: str = "morning",
+    fault_zone: str | None = "Zone_B",
+) -> pd.DataFrame:
+    """Simulate one labeled scenario and return all three zone readings by hour."""
+    condition = condition.lower()
+    if condition not in ("normal", "leak", "clog"):
+        raise ValueError("condition must be 'normal', 'leak', or 'clog'")
     if schedule not in SCHEDULE_PROFILES:
-        choices = ", ".join(SCHEDULE_PROFILES)
-        raise ValueError(f"Unknown schedule {schedule!r}. Choose one of: {choices}")
+        raise ValueError(f"Unknown schedule {schedule!r}; choose from {', '.join(SCHEDULE_PROFILES)}")
+
+    if condition == "normal":
+        severity = None
+        fault_zone = None
+    else:
+        if severity not in SEVERITIES:
+            raise ValueError(f"Fault severity must be one of: {', '.join(SEVERITIES)}")
+        if fault_zone not in dict(ZONES):
+            raise ValueError(f"Fault zone must be one of: {', '.join(zone for zone, _ in ZONES)}")
 
     network = build_network(schedule)
-    zone = network.get_node(FAULT_ZONE)
-
     if condition == "leak":
-        zone.emitter_coefficient = LEAK_EMITTER_COEFFICIENTS[severity]
+        network.get_node(fault_zone).emitter_coefficient = LEAK_EMITTER_COEFFICIENTS[severity]
     elif condition == "clog":
-        demand = zone.demand_timeseries_list[0]
+        demand = network.get_node(fault_zone).demand_timeseries_list[0]
         demand.base_value *= CLOG_DEMAND_FACTORS[severity]
 
-    sample_hour = SCHEDULE_SAMPLE_HOUR[schedule]
-    time_seconds = sample_hour * 3600
     results = wntr.sim.EpanetSimulator(network).run_sim()
-    pressure = results.node["pressure"].loc[time_seconds, FAULT_ZONE]
-    flow = results.link["flowrate"].loc[time_seconds, "Branch_B"]
+    scenario_parts = [condition.upper(), schedule.upper()]
+    if condition != "normal":
+        scenario_parts.extend([severity.upper(), fault_zone.upper()])
+    scenario_id = "_".join(scenario_parts)
 
-    return {
-        "Schedule": schedule.title(),
-        "Hour": sample_hour,
-        "Condition": condition.title(),
-        "Severity": severity.title() if severity else "—",
-        "Location": FAULT_ZONE.replace("_", " ") if severity else "—",
-        "Pressure (kPa)": float(pressure) * 9.80665,
-        "Flow (L/min)": float(flow) * 60_000,
-    }
+    rows: list[dict[str, object]] = []
+    for hour, demand_multiplier in enumerate(SCHEDULE_PROFILES[schedule]):
+        timestamp = hour * 3600
+        pressure = results.node["pressure"].loc[timestamp]
+        flow = results.link["flowrate"].loc[timestamp]
+        row: dict[str, object] = {
+            "Scenario_ID": scenario_id,
+            "Schedule": schedule,
+            "Hour": hour,
+            "Demand_Multiplier": demand_multiplier,
+            "Condition": condition,
+            "Severity": severity or "none",
+            "Fault_Location": fault_zone.replace("_", " ") if fault_zone else "none",
+            "Data_Source": "WNTR synthetic simulation",
+        }
+        for zone_name, branch_name in ZONES:
+            zone_label = zone_name.replace("_", "")
+            row[f"Pressure_{zone_label}_kPa"] = float(pressure[zone_name]) * 9.80665
+            row[f"Flow_{zone_label}_L_min"] = float(flow[branch_name]) * 60_000
+        rows.append(row)
+    return pd.DataFrame(rows)
 
 
 def main() -> None:
-    cases = []
-    for schedule in SCHEDULE_PROFILES:
-        cases.append(run_case("normal", schedule=schedule))
-        for severity in ("mild", "moderate", "severe"):
-            cases.append(run_case("leak", severity, schedule))
-            cases.append(run_case("clog", severity, schedule))
+    parser = argparse.ArgumentParser(description="Simulate one irrigation condition across a schedule.")
+    parser.add_argument("--condition", choices=["normal", "leak", "clog"], default="leak")
+    parser.add_argument("--schedule", choices=list(SCHEDULE_PROFILES), default="morning")
+    parser.add_argument("--severity", choices=SEVERITIES, default="mild")
+    parser.add_argument("--zone", choices=[zone for zone, _ in ZONES], default="Zone_B")
+    parser.add_argument("--hour", type=int, choices=range(6), help="Show one hour; default is the schedule's representative active hour.")
+    parser.add_argument("--all-hours", action="store_true", help="Show all six hours in the selected schedule.")
+    args = parser.parse_args()
 
-    table = pd.DataFrame(cases)
-    normal_flows = (
-        table.loc[table["Condition"] == "Normal"]
-        .set_index("Schedule")["Flow (L/min)"]
+    data = run_case(
+        args.condition,
+        severity=args.severity,
+        schedule=args.schedule,
+        fault_zone=args.zone,
     )
-    table["Flow change from normal (%)"] = table.apply(
-        lambda row: (row["Flow (L/min)"] - normal_flows[row["Schedule"]])
-        / normal_flows[row["Schedule"]]
-        * 100,
-        axis=1,
-    ).round(1)
-    table["Pressure (kPa)"] = table["Pressure (kPa)"].round(2)
-    table["Flow (L/min)"] = table["Flow (L/min)"].round(2)
+    if args.hour is not None:
+        data = data[data["Hour"] == args.hour]
+    elif not args.all_hours:
+        data = data[data["Hour"] == SCHEDULE_SAMPLE_HOUR[args.schedule]]
 
-    print("Zone B normal, leak, and clog readings across three synthetic schedules")
-    print(table.to_string(index=False))
-    print("\nSynthetic demonstration only; not field-calibrated.")
+    print(data.to_string(index=False, float_format=lambda value: f"{value:.2f}"))
+    print("\nReadings are generated by the WNTR hydraulic simulation.")
 
 
 if __name__ == "__main__":
