@@ -1,0 +1,8 @@
+# Template execution contract
+
+- Reference: `C:\Users\seree\Downloads\conference-template-a4 (1).docx` (SHA-256 recorded in work log); one section, A4 portrait, two columns, IEEE conference styles and author/title/abstract slots.
+- Page geometry from `word/document.xml`: A4 595.30 x 841.90 pt; margins top 54 pt, bottom 72 pt, left/right 44.65 pt; header/footer 36 pt; columns separated by 36 pt.
+- Structure: title; author block; abstract; keywords; numbered section headings, body text, subheadings; acknowledgment; references. IEEE template contains instructional text and dummy citations to remove.
+- Package uses Strict OOXML relationship namespaces; standard python-docx/render workflow currently fails on the supplied source. Preserve the original unchanged, edit a task-local copy at the text-node level, normalize Strict relationship URIs only in the output if required for broad Word compatibility, and render/inspect the final file. If renderer remains unavailable, report the limitation.
+- Editable content slots: title, author block, abstract, keywords, body paragraphs/section headings, acknowledgment/declaration, references. Preserve all styles, page geometry, columns, and template assets. Remove template guidance/dummy refs.
+- Content contract: develop the user's irrigation diagnosis project as an IEEE-style proposed study, not as completed empirical work. AI/ML classifier is the main technology; digital twin is supporting technology. Use synthetic data with explicit limits; include methodology, benchmark, metrics, failure analysis, ethics/security/privacy/sustainability, contribution, IEEE citations and AI-use declaration. Leave names/affiliations as an explicit editable placeholder.
