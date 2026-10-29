@@ -31,6 +31,14 @@
 - **Run evidence:** The user ran both scripts successfully. Normal Zone B was 433.33 kPa and 13.20 L/min. Leak cases ranged from 431.98 kPa and 14.39 L/min (mild) to 425.66 kPa and 19.13 L/min (severe). Clog cases ranged from 435.97 kPa and 10.56 L/min (mild) to 440.30 kPa and 3.96 L/min (severe). Zone A/C normal readings were 434.57/435.71 kPa with flows of 12.0/10.8 L/min.
 - **Status:** Step 1 confirmed by a successful user run. The parameters remain illustrative assumptions, not field-calibrated values.
 
+## 2026-10-29 — Added synthetic watering schedules
+
+- **Change:** Added morning, afternoon, and night six-hour demand profiles to the WNTR network. `build_network(schedule)` now selects a profile, and both simulation scripts report readings at the representative active hour for each profile. The fault comparison now produces normal, mild, moderate, and severe leak/clog cases for Zone B under all three profiles.
+- **Schedule assumptions:** Morning multipliers are `[0.7, 1.0, 1.0, 1.0, 0.2, 0.0]` with sample hour 2; afternoon multipliers are `[0.0, 0.15, 0.35, 0.55, 0.75, 0.3]` with sample hour 4; night multipliers are `[0.15, 0.3, 0.45, 0.6, 0.45, 0.2]` with sample hour 3. These are deliberately illustrative demand patterns, not field schedules.
+- **Run evidence:** Both scripts ran successfully. Normal Zone B readings were 433.33 kPa / 13.20 L/min in the morning, 436.62 kPa / 9.90 L/min in the afternoon, and 438.21 kPa / 7.92 L/min at night. Across all profiles, simulated leaks increased branch flow and reduced pressure relative to that schedule's normal case; simulated clogs reduced flow and increased pressure.
+- **Current scope:** Fault cases still target Zone B only. The dataset generator will need to cover other fault locations and export labeled records; that is separate from adding schedule options to this simulation step.
+- **Limitations:** Schedules and fault parameters are synthetic assumptions. No observed UOW or municipal irrigation schedule or measurement is used.
+
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
 - **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.

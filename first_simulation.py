@@ -19,12 +19,26 @@ MAP_NODES = {
     "Zone_C": (0.0, -250.0),
 }
 
+# Illustrative six-hour demand profiles. Multipliers are synthetic assumptions,
+# not observed irrigation schedules. The representative peak hour is simulated
+# for each profile when producing a compact comparison table.
+SCHEDULE_PROFILES = {
+    "morning": [0.7, 1.0, 1.0, 1.0, 0.2, 0.0],
+    "afternoon": [0.0, 0.15, 0.35, 0.55, 0.75, 0.3],
+    "night": [0.15, 0.3, 0.45, 0.6, 0.45, 0.2],
+}
+SCHEDULE_SAMPLE_HOUR = {"morning": 2, "afternoon": 4, "night": 3}
 
-def build_network() -> wntr.network.WaterNetworkModel:
+
+def build_network(schedule: str = "morning") -> wntr.network.WaterNetworkModel:
+    if schedule not in SCHEDULE_PROFILES:
+        choices = ", ".join(SCHEDULE_PROFILES)
+        raise ValueError(f"Unknown schedule {schedule!r}. Choose one of: {choices}")
+
     network = wntr.network.WaterNetworkModel()
 
-    # A simple morning demand pattern: water the zones during hours 0 to 3.
-    network.add_pattern("morning", [0.7, 1.0, 1.0, 1.0, 0.2, 0.0])
+    for name, multipliers in SCHEDULE_PROFILES.items():
+        network.add_pattern(name, multipliers)
 
     network.add_reservoir("Source", base_head=50.0, coordinates=MAP_NODES["Source"])
     network.add_junction(
@@ -42,7 +56,7 @@ def build_network() -> wntr.network.WaterNetworkModel:
         network.add_junction(
             zone_name,
             base_demand=demand,
-            demand_pattern="morning",
+            demand_pattern=schedule,
             elevation=5.0,
             coordinates=MAP_NODES[zone_name],
         )
@@ -70,32 +84,33 @@ def build_network() -> wntr.network.WaterNetworkModel:
 
 
 def main() -> None:
-    network = build_network()
-    results = wntr.sim.EpanetSimulator(network).run_sim()
-
-    # Show readings during the watering period at hour 2.
-    time_seconds = 2 * 3600
-    pressure = results.node["pressure"].loc[time_seconds]
-    flow = results.link["flowrate"].loc[time_seconds]
-
     rows = []
-    for zone_name, branch_name, *_ in [
-        ("Zone_A", "Branch_A"),
-        ("Zone_B", "Branch_B"),
-        ("Zone_C", "Branch_C"),
-    ]:
-        rows.append(
-            {
-                "Zone": zone_name.replace("_", " "),
-                "Pressure (kPa)": round(float(pressure[zone_name]) * 9.80665, 2),
-                "Flow (L/min)": round(float(flow[branch_name]) * 60_000, 2),
-            }
-        )
+    for schedule, sample_hour in SCHEDULE_SAMPLE_HOUR.items():
+        network = build_network(schedule)
+        results = wntr.sim.EpanetSimulator(network).run_sim()
+        time_seconds = sample_hour * 3600
+        pressure = results.node["pressure"].loc[time_seconds]
+        flow = results.link["flowrate"].loc[time_seconds]
+
+        for zone_name, branch_name in [
+            ("Zone_A", "Branch_A"),
+            ("Zone_B", "Branch_B"),
+            ("Zone_C", "Branch_C"),
+        ]:
+            rows.append(
+                {
+                    "Schedule": schedule.title(),
+                    "Hour": sample_hour,
+                    "Zone": zone_name.replace("_", " "),
+                    "Pressure (kPa)": round(float(pressure[zone_name]) * 9.80665, 2),
+                    "Flow (L/min)": round(float(flow[branch_name]) * 60_000, 2),
+                }
+            )
 
     readings = pd.DataFrame(rows)
-    print("Normal morning-cycle readings at hour 2")
+    print("Normal readings at the representative active hour for each schedule")
     print(readings.to_string(index=False))
-    print("\nThese are simulated readings from an illustrative network.")
+    print("\nAll schedules and readings are synthetic assumptions and outputs.")
 
 
 if __name__ == "__main__":

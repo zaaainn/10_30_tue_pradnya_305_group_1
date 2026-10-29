@@ -9,6 +9,7 @@ This repository contains a simulation-based university prototype for distinguish
 - `uow_study_area_map.html` is a self-contained offline schematic showing the 3 km study radius and hypothetical node locations. It does not use street-map tiles or represent actual pipe locations.
 - UOW Dubai is used only as a geographic reference point; its official contact page lists the campus address in Dubai Knowledge Park: [UOW Dubai contact page](https://www.uowdubai.ac.ae/contact-us).
 - The intended model inputs are simulated pressure, flow, and watering-schedule information.
+- The simulator currently includes illustrative morning, afternoon, and night demand profiles. Their multipliers are synthetic assumptions, not measured municipal schedules.
 - The classifier will be compared with a schedule-aware threshold alert using the same test scenarios.
 - Pipe dimensions and demands are prototype assumptions selected to produce visible simulated hydraulic changes; they are not calibrated field values.
 
@@ -21,9 +22,9 @@ py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## First simulation
+## Normal simulation across schedules
 
-Run the initial normal three-zone morning-cycle simulation:
+Run the normal three-zone simulation for morning, afternoon, and night profiles:
 
 ```powershell
 .\.venv\Scripts\python.exe .\first_simulation.py
@@ -31,15 +32,15 @@ Run the initial normal three-zone morning-cycle simulation:
 
 The network parameters are illustrative assumptions, not field measurements. See [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) for progress and evidence notes.
 
-## First fault comparison
+## Fault comparison across schedules
 
-Run the initial same-schedule leak and clog comparison at Zone B:
+Run normal, leak, and clog cases at Zone B for all three schedule profiles and mild, moderate, and severe fault settings:
 
 ```powershell
 .\.venv\Scripts\python.exe .\fault_scenarios.py
 ```
 
-This first comparison uses illustrative leak emitter coefficients and reduced zone demand as a simple clog surrogate. These fault settings require further review before they are used to generate classifier training data.
+This comparison uses illustrative leak emitter coefficients and reduced zone demand as a simple clog surrogate. These fault settings require further review before they are used to generate classifier training data.
 
 ## Streamlit prototype views
 

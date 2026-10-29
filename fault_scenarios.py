@@ -7,10 +7,9 @@ calibrated values or measurements from UOW Dubai.
 import pandas as pd
 import wntr
 
-from first_simulation import build_network
+from first_simulation import SCHEDULE_SAMPLE_HOUR, SCHEDULE_PROFILES, build_network
 
 
-SIMULATION_TIME_SECONDS = 2 * 3600
 FAULT_ZONE = "Zone_B"
 
 # Emitter coefficients represent additional leak discharge at the selected
@@ -29,8 +28,14 @@ CLOG_DEMAND_FACTORS = {
 }
 
 
-def run_case(condition: str, severity: str | None = None) -> dict[str, object]:
-    network = build_network()
+def run_case(
+    condition: str, severity: str | None = None, schedule: str = "morning"
+) -> dict[str, object]:
+    if schedule not in SCHEDULE_PROFILES:
+        choices = ", ".join(SCHEDULE_PROFILES)
+        raise ValueError(f"Unknown schedule {schedule!r}. Choose one of: {choices}")
+
+    network = build_network(schedule)
     zone = network.get_node(FAULT_ZONE)
 
     if condition == "leak":
@@ -39,11 +44,15 @@ def run_case(condition: str, severity: str | None = None) -> dict[str, object]:
         demand = zone.demand_timeseries_list[0]
         demand.base_value *= CLOG_DEMAND_FACTORS[severity]
 
+    sample_hour = SCHEDULE_SAMPLE_HOUR[schedule]
+    time_seconds = sample_hour * 3600
     results = wntr.sim.EpanetSimulator(network).run_sim()
-    pressure = results.node["pressure"].loc[SIMULATION_TIME_SECONDS, FAULT_ZONE]
-    flow = results.link["flowrate"].loc[SIMULATION_TIME_SECONDS, "Branch_B"]
+    pressure = results.node["pressure"].loc[time_seconds, FAULT_ZONE]
+    flow = results.link["flowrate"].loc[time_seconds, "Branch_B"]
 
     return {
+        "Schedule": schedule.title(),
+        "Hour": sample_hour,
         "Condition": condition.title(),
         "Severity": severity.title() if severity else "—",
         "Location": FAULT_ZONE.replace("_", " ") if severity else "—",
@@ -53,20 +62,28 @@ def run_case(condition: str, severity: str | None = None) -> dict[str, object]:
 
 
 def main() -> None:
-    cases = [run_case("normal")]
-    for severity in ("mild", "moderate", "severe"):
-        cases.append(run_case("leak", severity))
-        cases.append(run_case("clog", severity))
+    cases = []
+    for schedule in SCHEDULE_PROFILES:
+        cases.append(run_case("normal", schedule=schedule))
+        for severity in ("mild", "moderate", "severe"):
+            cases.append(run_case("leak", severity, schedule))
+            cases.append(run_case("clog", severity, schedule))
 
     table = pd.DataFrame(cases)
-    normal_flow = table.loc[table["Condition"] == "Normal", "Flow (L/min)"].iloc[0]
-    table["Flow change from normal (%)"] = (
-        (table["Flow (L/min)"] - normal_flow) / normal_flow * 100
+    normal_flows = (
+        table.loc[table["Condition"] == "Normal"]
+        .set_index("Schedule")["Flow (L/min)"]
+    )
+    table["Flow change from normal (%)"] = table.apply(
+        lambda row: (row["Flow (L/min)"] - normal_flows[row["Schedule"]])
+        / normal_flows[row["Schedule"]]
+        * 100,
+        axis=1,
     ).round(1)
     table["Pressure (kPa)"] = table["Pressure (kPa)"].round(2)
     table["Flow (L/min)"] = table["Flow (L/min)"].round(2)
 
-    print("Zone B readings during the same morning schedule (hour 2)")
+    print("Zone B normal, leak, and clog readings across three synthetic schedules")
     print(table.to_string(index=False))
     print("\nSynthetic demonstration only; not field-calibrated.")
 
