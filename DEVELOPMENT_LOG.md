@@ -94,6 +94,12 @@
 - **Scenario interface review:** Ran a moderate Zone A leak scenario for the afternoon schedule across all six hours. The generator returned six hourly records for all three zones, with the selected fault label and synthetic-data source recorded.
 - **Outcome:** Both interfaces behaved as expected in this review; no code change was required. The scenario run was a functional check of simulated output, not validation against a real irrigation network.
 
+## 2026-10-29 — Member 1 hydraulic response review
+
+- **Review:** Compared each faulted zone's pressure and flow with the matching normal schedule and hour in the generated dataset. During active watering, leak cases consistently increased flow and reduced pressure; clog cases consistently reduced flow and increased pressure. The shifts generally grew with the configured mild, moderate, and severe settings.
+- **Edge case:** In 18 of 324 faulted zone-hour records, a clog produced the same readings as normal operation because the schedule had zero demand at that hour. This is an expected unobservable case for the current demand-reduction clog model and should be retained as a difficult test case.
+- **Group review:** These checks are a technical review of the simulation output. Group feedback on whether the assumed fault responses and zero-demand handling are acceptable is still pending; no calibration to field measurements is claimed.
+
 ## 2026-10-29 — Streamlit study-area and pipeline views
 
 - **Change:** Added `app.py` with two local dashboard views: a study-area view and a larger pipeline topology view with normal baseline readings. Added Matplotlib to `requirements.txt` and dashboard launch instructions to the README. The study-area view supports Google satellite imagery when a local API key is configured and otherwise falls back to an offline illustration.
