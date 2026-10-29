@@ -27,3 +27,13 @@ Run the initial normal three-zone morning-cycle simulation:
 ```
 
 The network parameters are illustrative assumptions, not field measurements. See [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) for progress and evidence notes.
+
+## First fault comparison
+
+Run the initial same-schedule leak and clog comparison at Zone B:
+
+```powershell
+.\.venv\Scripts\python.exe .\fault_scenarios.py
+```
+
+This first comparison uses illustrative leak emitter coefficients and reduced zone demand as a simple clog surrogate. These fault settings require further review before they are used to generate classifier training data.
