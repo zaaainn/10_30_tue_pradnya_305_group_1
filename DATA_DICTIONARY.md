@@ -10,7 +10,7 @@
 - **Sensor features:** pressure and flow for each of Zones A, B, and C in each record.
 - **Data provenance:** WNTR/EPANET simulation outputs using the assumptions documented in `first_simulation.py` and `fault_scenarios.py`.
 
-Each `Scenario_ID` repeats for six consecutive hourly records from the same simulated configuration. Keep all rows sharing a `Scenario_ID` together when creating training and test sets to avoid splitting one simulated run across both sets.
+Each Scenario_ID is associated with six hourly records, covering hours 0–5, from the same simulated configuration. Keep all rows sharing a `Scenario_ID` together when creating training and test sets to avoid splitting one simulated run across both sets.
 
 ## Fields
 
@@ -22,7 +22,7 @@ Each `Scenario_ID` repeats for six consecutive hourly records from the same simu
 | `Demand_Multiplier` | Number | Relative demand multiplier applied at the specified hour. | Dimensionless; profile values are defined in `first_simulation.py`. |
 | `Condition` | Category | Injected operating condition. This is the target label for condition classification. | `normal`, `leak`, `clog` |
 | `Severity` | Category | Injected fault severity. It is `none` for normal operation and is a scenario setting, not a model prediction. | `none`, `mild`, `moderate`, `severe` |
-| `Fault_Location` | Category | Zone receiving the injected fault. It is `none` for normal operation. | `none`, `Zone A`, `Zone B`, `Zone C` |
+| `Fault_Location` | Category | Zone receiving the injected fault. This is the target label for fault-location classification. It is `none` for normal operation. | `none`, `Zone A`, `Zone B`, `Zone C` |
 | `Pressure_ZoneA_kPa` | Number | Simulated pressure reading in Zone A. | kPa |
 | `Pressure_ZoneB_kPa` | Number | Simulated pressure reading in Zone B. | kPa |
 | `Pressure_ZoneC_kPa` | Number | Simulated pressure reading in Zone C. | kPa |
