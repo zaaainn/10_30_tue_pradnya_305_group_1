@@ -2,27 +2,28 @@
 
 from diagnosis import predict_records
 from schedule_aware_threshold import predict_thresholds
-import json
-import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
+from matplotlib.patches import Patch
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib import patheffects
+from matplotlib.lines import Line2D
+from PIL import Image
+import numpy as np
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from diagnosis import DEFAULT_MODEL_PATH, load_model
 from evaluate_methods import evaluate_methods
+import ui_theme
+from ui_theme import show_table
 
 
 st.set_page_config(page_title="Urban Irrigation Twin", page_icon="💧", layout="wide")
 
-NAVY = "#17354a"
-BLUE = "#28759c"
-PIPE = "#54798e"
-GREEN = "#24a47f"
-GOLD = "#e2a13a"
+ui_theme.inject_css()
+T = ui_theme.tokens()  # colours for the diagrams, matching the selected theme
 
 
 @st.cache_data(show_spinner=False)
@@ -38,544 +39,616 @@ def cached_method_comparison(
     return evaluate_methods(data, model_bundle)
 
 
-def draw_study_area() -> plt.Figure:
-    """Draw an offline illustrative study radius and a zoomed network inset."""
-    fig, (overview, inset) = plt.subplots(
-        1, 2, figsize=(12, 6), gridspec_kw={"width_ratios": [1.25, 1]}
-    )
-    fig.patch.set_facecolor("#f7fafb")
-    overview.set_facecolor("#eaf0e9")
+def draw_context_map(reading: pd.Series, highlighted_zone: str | None = None) -> plt.Figure:
+    """Show the supplied Dubai map as context with a clearly hypothetical network overlay."""
+    image_path = Path(__file__).parent / "assets" / "uow_dubai_context.png"
+    image = Image.open(image_path).convert("RGB")
+    width, height = image.size
+    fig, ax = plt.subplots(figsize=(12, 7.4))
+    fig.patch.set_facecolor(T["plot_face"])
+    ax.imshow(image, extent=(0, width, height, 0), zorder=0)
 
-    # Abstract blocks are decorative only and do not depict real streets or land use.
-    blocks = [
-        (-2.5, 1.8, 1.2, 0.45), (-0.9, 2.2, 1.5, 0.35), (1.0, 1.8, 1.2, 0.55),
-        (-2.3, 0.7, 0.8, 0.6), (1.5, 0.5, 1.0, 0.7), (-1.8, -1.7, 1.2, 0.6),
-        (0.8, -2.2, 1.4, 0.55), (-0.2, -2.6, 0.65, 0.45),
-    ]
-    for x, y, w, h in blocks:
-        overview.add_patch(
-            Rectangle((x, y), w, h, facecolor="#d8dfd3", edgecolor="#c5d0c6", lw=0.7)
-        )
-    overview.add_patch(Circle((0, 0), 3, facecolor="#6eb6ca", alpha=0.12, edgecolor=BLUE, lw=2.2))
-    overview.scatter([0], [0], s=110, marker="s", color=NAVY, zorder=5, label="UOW Dubai reference")
-    overview.annotate("UOW Dubai\n(reference point)", (0, 0), xytext=(0.25, 0.32), fontsize=9, color=NAVY)
-    overview.set_title("3 km study-area context", color=NAVY, fontsize=13, weight="bold")
-    overview.text(-2.85, -3.35, "Circle shows study radius; background is illustrative, not satellite imagery.", fontsize=8, color="#506775")
-    overview.set_xlim(-3.55, 3.55)
-    overview.set_ylim(-3.55, 3.55)
-    overview.set_aspect("equal")
-    overview.set_xlabel("Illustrative distance from reference point (km)", fontsize=8)
-    overview.set_ylabel("Illustrative distance (km)", fontsize=8)
-    overview.grid(alpha=0.15)
+    # These normalized points are a visual illustration only, not surveyed pipe coordinates.
+    points = {
+        "Source": (.31, .57), "Manifold": (.43, .57),
+        "Zone A": (.55, .34), "Zone B": (.64, .57), "Zone C": (.55, .78),
+    }
+    coords = {name: (x * width, y * height) for name, (x, y) in points.items()}
+    links = [("Source", "Manifold"), ("Manifold", "Zone A"), ("Manifold", "Zone B"), ("Manifold", "Zone C")]
+    for start, end in links:
+        x1, y1 = coords[start]
+        x2, y2 = coords[end]
+        ax.plot([x1, x2], [y1, y2], color="#071525", linewidth=9, alpha=.86, solid_capstyle="round", zorder=2)
+        ax.plot([x1, x2], [y1, y2], color=T["chart_high"], linewidth=4.2, alpha=.98, solid_capstyle="round", zorder=3)
 
-    draw_network(inset, show_measurements=False)
-    inset.set_title("Hypothetical network (zoomed)", color=NAVY, fontsize=13, weight="bold")
-    fig.suptitle("Offline study-area illustration", fontsize=16, color=NAVY, weight="bold")
-    fig.text(
-        0.5, 0.015,
-        "All zones, connections and background shapes are illustrative; no actual UOW or city pipes are shown.",
-        ha="center", fontsize=9, color="#8a4b13",
-    )
-    fig.tight_layout(rect=[0, 0.045, 1, 0.94])
+    def add_node(name: str, color: str, marker: str = "o", size: int = 250) -> None:
+        x, y = coords[name]
+        ax.scatter([x], [y], s=size + 115, marker=marker, color="#081321", edgecolor="white", linewidth=2, zorder=4)
+        ax.scatter([x], [y], s=size, marker=marker, color=color, edgecolor="white", linewidth=1.5, zorder=5)
+
+    add_node("Source", T["source"], marker="s", size=210)
+    add_node("Manifold", T["node"], size=260)
+    for zone in ("Zone A", "Zone B", "Zone C"):
+        add_node(zone, T["fault"] if zone == highlighted_zone else T["zone"], size=270)
+
+    text_effect = [patheffects.withStroke(linewidth=3.2, foreground="#071321", alpha=.95)]
+    labels = {
+        "Source": ("Synthetic source", -14, 34, "right"),
+        "Manifold": ("Distribution manifold", 0, 37, "center"),
+        "Zone A": ("Zone A", 0, -32, "center"),
+        "Zone B": ("Zone B", 0, -32, "center"),
+        "Zone C": ("Zone C", 0, 34, "center"),
+    }
+    for name, (label, dx, dy, align) in labels.items():
+        x, y = coords[name]
+        ax.annotate(label, (x, y), xytext=(dx, dy), textcoords="offset points", ha=align, va="center",
+                    color="white", fontsize=10.5, weight="bold", zorder=7, path_effects=text_effect,
+                    bbox=dict(boxstyle="round,pad=.3", facecolor="#101c2b", edgecolor="#d7e4f4", alpha=.94))
+
+    for zone in ("Zone A", "Zone B", "Zone C"):
+        key = zone.replace(" ", "")
+        flow = float(reading[f"Flow_{key}_L_min"])
+        pressure = float(reading[f"Pressure_{key}_kPa"])
+        x, y = coords[zone]
+        offset = (43, -5) if zone == "Zone A" else ((38, 2) if zone == "Zone B" else (38, 8))
+        label = f"{flow:.1f} L/min  ·  {pressure:.1f} kPa"
+        ax.annotate(label, (x, y), xytext=offset, textcoords="offset points", ha="left", va="center",
+                    color="white", fontsize=8.1, weight="bold", zorder=7, path_effects=text_effect,
+                    bbox=dict(boxstyle="round,pad=.32", facecolor="#101c2b", edgecolor="#d7e4f4", alpha=.94))
+
+    ax.text(.018 * width, .035 * height, "SIMULATED NETWORK · NOT REAL CAMPUS PIPES", color="white", fontsize=10,
+            weight="bold", va="top", zorder=8,
+            bbox=dict(boxstyle="round,pad=.62", facecolor="#101c2b", edgecolor="white", alpha=.94))
+    ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)
+    ax.axis("off")
+    fig.tight_layout(pad=0)
     return fig
 
 
-def draw_network(ax: plt.Axes, show_measurements: bool = True, fault_zone: str | None = None) -> None:
-    """Draw the abstract source-manifold-three-zone pipe topology."""
-    ax.set_facecolor("#fbfdfe")
-    nodes = {
-        "Source": (0.0, 0.0),
-        "Manifold": (2.0, 0.0),
-        "Zone A": (4.2, 1.45),
-        "Zone B": (4.2, 0.0),
-        "Zone C": (4.2, -1.45),
-    }
-    links = [("Source", "Manifold"), ("Manifold", "Zone A"), ("Manifold", "Zone B"), ("Manifold", "Zone C")]
-    for start, end in links:
-        x1, y1 = nodes[start]
-        x2, y2 = nodes[end]
-        ax.add_patch(FancyArrowPatch((x1 + 0.2, y1), (x2 - 0.2, y2), arrowstyle="-", lw=3, color=PIPE, zorder=1))
-    for name, (x, y) in nodes.items():
-        if name == "Source":
-            color, marker = GOLD, "s"
-        elif name == "Manifold":
-            color, marker = NAVY, "o"
+def draw_confusion_matrix(predictions: pd.DataFrame, method_column: str, title: str) -> plt.Figure:
+    """Render an actual-versus-predicted class heatmap for one method."""
+    labels = ["normal", "leak", "clog"]
+    predicted_labels = labels + (["unknown_fault"] if (predictions[method_column] == "unknown_fault").any() else [])
+    matrix = pd.crosstab(predictions["Condition"], predictions[method_column]).reindex(
+        index=labels, columns=predicted_labels, fill_value=0
+    )
+    cmap = LinearSegmentedColormap.from_list("diagnosis", [T["chart_low"], T["chart_high"]])
+    fig, ax = plt.subplots(figsize=(5.3, 3.7))
+    fig.patch.set_facecolor(T["plot_face"])
+    ax.set_facecolor(T["plot_face"])
+    ax.imshow(matrix.to_numpy(), cmap=cmap, vmin=0, vmax=max(1, int(matrix.to_numpy().max())))
+    shown_predictions = ["Other / unknown" if label == "unknown_fault" else label.title() for label in predicted_labels]
+    ax.set_xticks(range(len(predicted_labels)), shown_predictions)
+    ax.set_yticks(range(len(labels)), [label.title() for label in labels])
+    ax.set_xlabel("Predicted condition", color=T["plot_muted"], labelpad=8)
+    ax.set_ylabel("Actual condition", color=T["plot_muted"], labelpad=8)
+    ax.set_title(title, color=T["plot_text"], fontsize=12, weight="bold", loc="left", pad=12)
+    ax.tick_params(colors=T["plot_muted"], length=0)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    for row in range(len(labels)):
+        for col in range(len(predicted_labels)):
+            value = int(matrix.iloc[row, col])
+            text_color = T["plot_face"] if value > matrix.to_numpy().max() * .55 else T["plot_text"]
+            ax.text(col, row, str(value), ha="center", va="center", color=text_color, fontsize=11, weight="bold")
+    fig.tight_layout(pad=1.25)
+    return fig
+
+
+def draw_comparison_chart(metrics: dict) -> plt.Figure:
+    """Compare the main performance and risk measures as paired bars."""
+    rf, threshold = metrics["random_forest"], metrics["schedule_aware_threshold"]
+    labels = ["Accuracy", "Macro F1", "Location", "Missed faults", "False warnings"]
+    rf_values = [rf["accuracy"], rf["macro_f1"], rf["fault_location_accuracy"], rf["missed_fault_rate"], rf["false_alert_rate"]]
+    threshold_values = [threshold["accuracy"], threshold["macro_f1"], threshold["fault_location_accuracy"], threshold["missed_fault_rate"], threshold["false_alert_rate"]]
+    positions = list(range(len(labels)))
+    width = .34
+    fig, ax = plt.subplots(figsize=(10.2, 4.1))
+    fig.patch.set_facecolor(T["plot_face"])
+    ax.set_facecolor(T["plot_face"])
+    ax.bar([p - width / 2 for p in positions], rf_values, width, color=T["chart_high"], label="Random Forest", zorder=3)
+    ax.bar([p + width / 2 for p in positions], threshold_values, width, color=T["chart_cyan"], label="Schedule-aware threshold", zorder=3)
+    ax.set_ylim(0, 1.12)
+    ax.set_yticks([0, .25, .5, .75, 1], ["0%", "25%", "50%", "75%", "100%"])
+    ax.set_xticks(positions, labels)
+    ax.set_title("Diagnosis quality and alert risk", color=T["plot_text"], fontsize=12, weight="bold", loc="left", pad=12)
+    ax.grid(axis="y", color=T["grid"], linewidth=.8, zorder=0)
+    ax.tick_params(colors=T["plot_muted"], length=0)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.spines["bottom"].set_color(T["grid"])
+    legend = ax.legend(frameon=False, ncol=2, loc="upper right")
+    for label in legend.get_texts():
+        label.set_color(T["plot_muted"])
+    for x, value in zip([p - width / 2 for p in positions], rf_values):
+        ax.text(x, value + .025, f"{value:.0%}", ha="center", va="bottom", fontsize=8, color=T["plot_text"])
+    for x, value in zip([p + width / 2 for p in positions], threshold_values):
+        ax.text(x, value + .025, f"{value:.0%}", ha="center", va="bottom", fontsize=8, color=T["plot_text"])
+    fig.tight_layout(pad=1.25)
+    return fig
+
+
+def draw_clog_severity_chart(metrics: dict) -> plt.Figure:
+    """Show how clog recall changes from mild to severe obstruction."""
+    rf = metrics["random_forest"]["clog_recall_by_severity"]
+    threshold = metrics["schedule_aware_threshold"]["clog_recall_by_severity"]
+    labels = ["Mild", "Moderate", "Severe"]
+    rf_values = [rf[key.lower()] for key in labels]
+    threshold_values = [threshold[key.lower()] for key in labels]
+    positions = list(range(len(labels)))
+    width = .32
+    fig, ax = plt.subplots(figsize=(6.3, 3.8))
+    fig.patch.set_facecolor(T["plot_face"])
+    ax.set_facecolor(T["plot_face"])
+    ax.bar([p - width / 2 for p in positions], rf_values, width, color=T["chart_high"], label="Random Forest", zorder=3)
+    ax.bar([p + width / 2 for p in positions], threshold_values, width, color=T["chart_cyan"], label="Schedule-aware threshold", zorder=3)
+    ax.set_ylim(0, 1.13)
+    ax.set_yticks([0, .25, .5, .75, 1], ["0%", "25%", "50%", "75%", "100%"])
+    ax.set_xticks(positions, labels)
+    ax.set_title("Clog recall by severity", color=T["plot_text"], fontsize=12, weight="bold", loc="left", pad=12)
+    ax.grid(axis="y", color=T["grid"], linewidth=.8, zorder=0)
+    ax.tick_params(colors=T["plot_muted"], length=0)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.spines["bottom"].set_color(T["grid"])
+    legend = ax.legend(frameon=False, fontsize=8, loc="upper left")
+    for label in legend.get_texts():
+        label.set_color(T["plot_muted"])
+    for x, value in zip([p - width / 2 for p in positions], rf_values):
+        ax.text(x, value + .025, f"{value:.0%}", ha="center", va="bottom", fontsize=8, color=T["plot_text"])
+    for x, value in zip([p + width / 2 for p in positions], threshold_values):
+        ax.text(x, value + .025, f"{value:.0%}", ha="center", va="bottom", fontsize=8, color=T["plot_text"])
+    fig.tight_layout(pad=1.25)
+    return fig
+
+
+def draw_class_precision_recall_chart(metrics: dict) -> plt.Figure:
+    """Compare Random Forest precision and recall with the threshold baseline by class."""
+    rf = metrics["random_forest"]["per_class"]
+    threshold = metrics["schedule_aware_threshold"]["per_class"]
+    classes = ["normal", "leak", "clog"]
+    labels = ["Normal", "Leak", "Clog"]
+    series = [
+        ("RF precision", [rf[name]["precision"] for name in classes], T["chart_high"]),
+        ("RF recall", [rf[name]["recall"] for name in classes], T["chart_cyan"]),
+        ("Threshold precision", [threshold[name]["precision"] for name in classes], T["pipe"]),
+        ("Threshold recall", [threshold[name]["recall"] for name in classes], T["source"]),
+    ]
+    positions = np.arange(len(classes))
+    width = .19
+    fig, ax = plt.subplots(figsize=(9.2, 3.8))
+    fig.patch.set_facecolor(T["plot_face"])
+    ax.set_facecolor(T["plot_face"])
+    for index, (label, values, color) in enumerate(series):
+        offset = (index - 1.5) * width
+        bars = ax.bar(positions + offset, values, width, color=color, label=label, zorder=3)
+        for bar, value in zip(bars, values):
+            ax.text(bar.get_x() + bar.get_width() / 2, value + .025, f"{value:.0%}",
+                    ha="center", va="bottom", fontsize=7, color=T["plot_text"])
+    ax.set_ylim(0, 1.15)
+    ax.set_yticks([0, .25, .5, .75, 1], ["0%", "25%", "50%", "75%", "100%"])
+    ax.set_xticks(positions, labels)
+    ax.set_title("Precision and recall by condition", color=T["plot_text"], fontsize=12, weight="bold", loc="left", pad=12)
+    ax.grid(axis="y", color=T["grid"], linewidth=.8, zorder=0)
+    ax.tick_params(colors=T["plot_muted"], length=0)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.spines["bottom"].set_color(T["grid"])
+    legend = ax.legend(frameon=False, ncol=2, loc="upper right", fontsize=8)
+    for item in legend.get_texts():
+        item.set_color(T["plot_muted"])
+    fig.tight_layout(pad=1.25)
+    return fig
+
+
+def draw_processing_time_chart(metrics: dict) -> plt.Figure:
+    """Show backend prediction time per test record for both methods."""
+    rf_time = metrics["random_forest"]["processing_ms_per_record"]
+    threshold_time = metrics["schedule_aware_threshold"]["processing_ms_per_record"]
+    values = [rf_time, threshold_time]
+    labels = ["Random Forest", "Schedule-aware\nthreshold"]
+    fig, ax = plt.subplots(figsize=(5.2, 3.3))
+    fig.patch.set_facecolor(T["plot_face"])
+    ax.set_facecolor(T["plot_face"])
+    bars = ax.bar(labels, values, color=[T["chart_high"], T["chart_cyan"]], width=.5, zorder=3)
+    for bar, value in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width() / 2, value + max(values + [1]) * .035,
+                f"{value:.3f} ms", ha="center", va="bottom", fontsize=9, color=T["plot_text"])
+    ax.set_ylim(0, max(values + [1]) * 1.22)
+    ax.set_ylabel("Milliseconds per record", color=T["plot_muted"], fontsize=8)
+    ax.set_title("Backend prediction time", color=T["plot_text"], fontsize=12, weight="bold", loc="left", pad=12)
+    ax.grid(axis="y", color=T["grid"], linewidth=.8, zorder=0)
+    ax.tick_params(colors=T["plot_muted"], length=0)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.spines["bottom"].set_color(T["grid"])
+    fig.tight_layout(pad=1.25)
+    return fig
+
+
+def draw_sensor_deviations(
+    observed: pd.Series,
+    expected: pd.Series,
+    model_location: str,
+    threshold_location: str,
+) -> plt.Figure:
+    """Plot observed-minus-normal pressure and flow by zone for one diagnosis result."""
+    zones = ["Zone A", "Zone B", "Zone C"]
+    zone_keys = {zone: zone.replace(" ", "") for zone in zones}
+    flow_deltas = [
+        float(observed[f"Flow_{zone_keys[zone]}_L_min"] - expected[f"Flow_{zone_keys[zone]}_L_min"])
+        for zone in zones
+    ]
+    pressure_deltas = [
+        float(observed[f"Pressure_{zone_keys[zone]}_kPa"] - expected[f"Pressure_{zone_keys[zone]}_kPa"])
+        for zone in zones
+    ]
+
+    # Make the ML diagnosis the primary visual signal; show the baseline as a discreet marker.
+    colors = [T["chart_high"] if zone == model_location else T["pipe"] for zone in zones]
+    fig, axes = plt.subplots(1, 2, figsize=(10.5, 3.8))
+    fig.patch.set_facecolor(T["plot_face"])
+    categories = [
+        (axes[0], flow_deltas, "Flow change by zone", "Change from expected flow (L/min)"),
+        (axes[1], pressure_deltas, "Pressure change by zone", "Change from expected pressure (kPa)"),
+    ]
+    for ax, values, title, xlabel in categories:
+        ax.set_facecolor(T["plot_face"])
+        positions = [2, 1, 0]
+        bars = ax.barh(positions, values, color=colors, height=.5, zorder=3)
+        ax.axvline(0, color=T["plot_muted"], linewidth=1, alpha=.8, zorder=2)
+        if threshold_location in zones:
+            threshold_y = positions[zones.index(threshold_location)]
+            ax.scatter([0], [threshold_y], marker="D", s=48, color=T["chart_cyan"],
+                       edgecolor=T["plot_face"], linewidth=1.1, zorder=5)
+        largest = max([abs(value) for value in values] + [.1])
+        limit = largest * 1.42
+        ax.set_xlim(-limit, limit)
+        ax.set_yticks(positions, zones)
+        ax.set_xlabel(xlabel, color=T["plot_muted"], fontsize=8)
+        ax.set_title(title, color=T["plot_text"], fontsize=11, weight="bold", loc="left", pad=10)
+        ax.grid(axis="x", color=T["grid"], linewidth=.8, zorder=0)
+        ax.tick_params(colors=T["plot_muted"], length=0, labelsize=9)
+        ax.spines[["top", "right", "left"]].set_visible(False)
+        ax.spines["bottom"].set_color(T["grid"])
+        for bar, value in zip(bars, values):
+            offset = limit * .025 * (1 if value >= 0 else -1)
+            ax.text(
+                value + offset,
+                bar.get_y() + bar.get_height() / 2,
+                f"{value:+.2f}",
+                ha="left" if value >= 0 else "right",
+                va="center",
+                fontsize=8,
+                color=T["plot_text"],
+            )
+
+    handles = [
+        Patch(facecolor=T["chart_high"], label="Random Forest prediction"),
+        Patch(facecolor=T["pipe"], label="Other zones"),
+        Line2D([0], [0], marker="D", color="none", markerfacecolor=T["chart_cyan"],
+               markeredgecolor=T["plot_face"], markersize=7, label="Threshold prediction"),
+    ]
+    legend = fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False, fontsize=8)
+    for label in legend.get_texts():
+        label.set_color(T["plot_muted"])
+    fig.tight_layout(rect=(0, .1, 1, 1), pad=1.25)
+    return fig
+
+
+view = ui_theme.sidebar_nav(default="Study area")
+ui_theme.top_bar(page=view)
+
+page_slug = view.lower().replace(" ", "-")
+with st.container(key=f"page-content-{page_slug}"):
+    st.markdown('<div class="workspace-eyebrow">URBAN WATER · SIMULATION WORKSPACE</div>', unsafe_allow_html=True)
+    st.title({"Study area": "Study area", "Pipeline view": "Pipeline overview", "Watering data": "Watering data", "Method comparison": "Method comparison", "Live Diagnosis": "Live diagnosis"}.get(view, "Irrigation fault diagnosis"))
+    st.caption("Three-zone irrigation fault-diagnosis prototype • synthetic network and readings")
+    st.info("The study area, zones and pipe connections are illustrative. Pipe locations and sensor readings are generated by the simulation, not taken from UOW infrastructure.")
+
+    if view == "Study area":
+        data_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
+        if not data_path.exists():
+            st.error("The labeled scenario CSV is missing. Run generate_labeled_dataset.py to create it.")
         else:
-            is_fault = fault_zone == name
-            color, marker = ("#c7473a" if is_fault else GREEN), "o"
-        ax.scatter([x], [y], s=190 if name != "Source" else 150, color=color, marker=marker, edgecolor="white", linewidth=1.4, zorder=3)
-        ax.annotate(name, (x, y), xytext=(0, 13 if name != "Zone C" else -22), textcoords="offset points", ha="center", fontsize=9, color=NAVY, weight="bold")
+            dataset = pd.read_csv(data_path)
+            normal = dataset[dataset["Condition"] == "normal"]
+            map_c1, map_c2 = st.columns(2)
+            schedule = map_c1.selectbox("Baseline watering schedule", sorted(normal["Schedule"].unique()), key="map_schedule")
+            hours = sorted(normal.loc[normal["Schedule"] == schedule, "Hour"].unique())
+            hour = map_c2.selectbox("Hour", hours, format_func=lambda value: f"Hour {value}", key="map_hour")
+            baseline = normal.loc[(normal["Schedule"] == schedule) & (normal["Hour"] == hour)].iloc[0]
+            st.pyplot(draw_context_map(baseline), use_container_width=True)
+            st.caption("The supplied map is geographic context only. The overlaid source, manifold, zones, pipe connections and displayed readings are simulated, illustrative and not surveyed or to scale.")
 
-    if show_measurements:
-        readings = {"Zone A": "12.0 L/min\n434.57 kPa", "Zone B": "13.2 L/min\n433.33 kPa", "Zone C": "10.8 L/min\n435.71 kPa"}
-        for name in ("Zone A", "Zone B", "Zone C"):
-            x, y = nodes[name]
-            ax.text(x + 0.34, y, readings[name], va="center", fontsize=8, color="#314d5d")
-    ax.text(0.0, -0.58, "Synthetic source", fontsize=8, ha="center", color="#80530e")
-    ax.text(2.0, -0.58, "Distribution manifold", fontsize=8, ha="center", color="#506775")
-    ax.set_xlim(-0.65, 6.0 if show_measurements else 5.0)
-    ax.set_ylim(-2.05, 2.05)
-    ax.set_aspect("equal")
-    ax.axis("off")
-
-
-def render_esri_satellite(api_key: str) -> None:
-    """Embed Esri satellite imagery and clearly hypothetical network overlays."""
-    key = json.dumps(api_key)
-    html = f"""
-    <!doctype html><html><head><meta charset="utf-8">
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css">
-    <style>html,body,#map{{height:100%;width:100%;margin:0;font-family:Arial,sans-serif}}
-    .notice{{position:absolute;z-index:2;left:12px;top:12px;max-width:360px;padding:10px 13px;
-    background:#fff;border-radius:8px;box-shadow:0 2px 10px #0003;color:#17354a;font-size:13px;line-height:1.4}}
-    .map-error{{display:none;position:absolute;z-index:3;right:12px;top:12px;max-width:360px;padding:10px 13px;
-    background:#fff3cd;border-radius:8px;color:#604b00;font-size:13px;line-height:1.4}}</style>
-    </head><body><div id="map"></div><div class="notice"><b>Satellite context only.</b><br>
-    Green and blue lines show a hypothetical simulation network, not real UOW or city pipes.</div>
-    <div id="map-error" class="map-error">Esri imagery could not be loaded. Check the ArcGIS access key and its Basemaps permission.</div>
-    <script type="importmap">
-      {{"imports":{{
-        "maplibre-gl":"https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs",
-        "@esri/maplibre-arcgis":"https://unpkg.com/@esri/maplibre-arcgis@1.3.1/dist/esm/maplibre-arcgis.min.js"
-      }}}}
-    </script>
-    <script type="module">
-      import * as maplibregl from "maplibre-gl";
-      import * as maplibreArcGIS from "@esri/maplibre-arcgis";
-
-      const accessToken = {key};
-      const campus = [55.16267, 25.10143];
-      const points = {{
-        Source: [55.15990, 25.10143],
-        Manifold: campus,
-        "Zone A": [55.16267, 25.10368],
-        "Zone B": [55.16544, 25.10143],
-        "Zone C": [55.16267, 25.09918]
-      }};
-      const map = new maplibregl.Map({{
-        container: "map", center: campus, zoom: 15,
-        style: {{version: 8, sources: {{}}, layers: [{{id: "background", type: "background", paint: {{"background-color": "#17212b"}}}}]}}
-      }});
-      map.addControl(new maplibregl.NavigationControl(), "top-right");
-      map.addControl(new maplibregl.FullscreenControl(), "top-right");
-      map.on("error", () => {{ document.getElementById("map-error").style.display = "block"; }});
-      const basemapStyle = maplibreArcGIS.BasemapStyle.applyStyle(map, {{style: "arcgis/imagery", token: accessToken}});
-      basemapStyle.on("BasemapStyleError", () => {{ document.getElementById("map-error").style.display = "block"; }});
-
-      function makeCircle(center, radiusMeters, steps = 96) {{
-        const [longitude, latitude] = center;
-        const earthRadius = 6378137;
-        const lat1 = latitude * Math.PI / 180;
-        const lon1 = longitude * Math.PI / 180;
-        const angularDistance = radiusMeters / earthRadius;
-        const coordinates = [];
-        for (let i = 0; i <= steps; i++) {{
-          const bearing = 2 * Math.PI * i / steps;
-          const lat2 = Math.asin(Math.sin(lat1) * Math.cos(angularDistance) + Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing));
-          const lon2 = lon1 + Math.atan2(Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1), Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2));
-          coordinates.push([lon2 * 180 / Math.PI, lat2 * 180 / Math.PI]);
-        }}
-        return {{type: "Feature", properties: {{}}, geometry: {{type: "Polygon", coordinates: [coordinates]}}}};
-      }}
-
-      function addSimulationOverlays() {{
-        if (map.__simulationOverlaysAdded) return;
-        if (!map.isStyleLoaded() || Object.keys(map.getStyle().sources || {{}}).length === 0) {{
-          map.once("style.load", addSimulationOverlays);
-          return;
-        }}
-        map.__simulationOverlaysAdded = true;
-        map.addSource("study-radius", {{type: "geojson", data: makeCircle(campus, 3000)}});
-        map.addLayer({{id: "study-radius-fill", type: "fill", source: "study-radius", paint: {{"fill-color": "#39a7e0", "fill-opacity": 0.06}}}});
-        map.addLayer({{id: "study-radius-outline", type: "line", source: "study-radius", paint: {{"line-color": "#39a7e0", "line-width": 2, "line-opacity": 0.9}}}});
-
-        const features = [
-          {{type: "Feature", properties: {{kind: "feed"}}, geometry: {{type: "LineString", coordinates: [points.Source, points.Manifold]}}}},
-          ...["Zone A", "Zone B", "Zone C"].map(name => ({{type: "Feature", properties: {{kind: "branch"}}, geometry: {{type: "LineString", coordinates: [points.Manifold, points[name]]}}}})),
-          ...Object.entries(points).map(([name, coordinates]) => ({{type: "Feature", properties: {{name, kind: name === "Source" ? "source" : name === "Manifold" ? "manifold" : "zone"}}, geometry: {{type: "Point", coordinates}}}})),
-          {{type: "Feature", properties: {{name: "UOW reference"}}, geometry: {{type: "Point", coordinates: campus}}}}
-        ];
-        map.addSource("hypothetical-network", {{type: "geojson", data: {{type: "FeatureCollection", features}}}});
-        map.addLayer({{id: "network-lines", type: "line", source: "hypothetical-network", filter: ["==", ["geometry-type"], "LineString"], paint: {{"line-color": ["match", ["get", "kind"], "feed", "#28a6df", "#20c997"], "line-width": 5, "line-opacity": 0.95}}}});
-        map.addLayer({{id: "network-points", type: "circle", source: "hypothetical-network", filter: ["==", ["geometry-type"], "Point"], paint: {{"circle-radius": ["match", ["get", "kind"], "manifold", 8, "source", 7, 7], "circle-color": ["match", ["get", "kind"], "source", "#e2a13a", "manifold", "#17354a", "#20c997"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 2}}}});
-        map.addLayer({{id: "network-labels", type: "symbol", source: "hypothetical-network", filter: ["==", ["geometry-type"], "Point"], layout: {{"text-field": ["get", "name"], "text-size": 13, "text-offset": [0, 1.4], "text-anchor": "top", "text-allow-overlap": true}}, paint: {{"text-color": "#ffffff", "text-halo-color": "#17354a", "text-halo-width": 1.5}}}});
-      }}
-      map.on("style.load", addSimulationOverlays);
-      basemapStyle.on("BasemapStyleLoad", addSimulationOverlays);
-    </script>
-    </body></html>
-    """
-    components.html(html, height=650, scrolling=False)
-
-
-st.markdown(
-    """
-    <div style="
-        background-color:#24a47f;
-        padding:18px;
-        text-align:center;
-        border-radius:0px;
-        margin-bottom:20px;
-    ">
-        <h2 style="
-            color:white;
-            margin:0;
-            font-weight:700;
-        ">
-            Smart Irrigation Monitoring Dashboard
-        </h2>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-st.info("Esri satellite imagery, when enabled, is geographic context only. Pipe locations and sensor readings are generated by the simulation, not taken from UOW infrastructure.")
-
-view = st.radio(
-    "Choose a view",
-    [
-        "Study area",
-        "Pipeline view",
-        "Watering data",
-        "Method comparison",
-        "Live Diagnosis"
-    ],
-    horizontal=True
-)
-
-if view == "Study area":
-    arcgis_api_key = os.environ.get("ARCGIS_API_KEY", "").strip()
-    try:
-        arcgis_api_key = arcgis_api_key or st.secrets.get("ARCGIS_API_KEY", "")
-    except (KeyError, FileNotFoundError):
-        pass
-    if arcgis_api_key:
-        render_esri_satellite(arcgis_api_key)
-        st.caption("Satellite imagery is supplied by Esri ArcGIS. The 3 km circle and pipeline overlay are for study context; simulated pipe positions are illustrative and do not represent real infrastructure.")
-    else:
-        st.info("To show Esri satellite imagery, configure ARCGIS_API_KEY in .streamlit/secrets.toml. The offline illustration is shown until then.")
-        st.pyplot(draw_study_area(), use_container_width=True)
-        st.caption("The offline background shapes and network positions are illustrative and are not to scale.")
-elif view == "Pipeline view":
-    selected = st.selectbox("Highlight a hypothetical fault location", ["None", "Zone A", "Zone B", "Zone C"])
-    fig, ax = plt.subplots(figsize=(11, 4.8))
-    fig.patch.set_facecolor("#f7fafb")
-    draw_network(ax, show_measurements=True, fault_zone=None if selected == "None" else selected)
-    ax.set_title("Simulated pipeline topology and normal baseline readings", color=NAVY, fontsize=14, weight="bold", pad=16)
-    st.pyplot(fig, use_container_width=True)
-    st.caption("Red highlight is a visual example only. Pipe connections and measurements are simulated; diagnosis predictions are shown in the Method comparison view.")
-elif view == "Watering data":
-    data_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
-    st.subheader("Labeled irrigation scenario dataset")
-    st.caption("WNTR-generated hydraulic readings across normal operation, leaks, and clogs.")
-    if not data_path.exists():
-        st.error("The labeled scenario CSV is missing. Run generate_labeled_dataset.py to create it.")
-    else:
-        dataset = pd.read_csv(data_path)
-        f1, f2, f3 = st.columns(3)
-        selected_schedule = f1.selectbox("Schedule", ["All", *sorted(dataset["Schedule"].unique())])
-        selected_condition = f2.selectbox("Condition", ["All", *sorted(dataset["Condition"].unique())])
-        selected_location = f3.selectbox("Fault location", ["All", *sorted(dataset["Fault_Location"].unique())])
-
-        displayed = dataset.copy()
-        if selected_schedule != "All":
-            displayed = displayed[displayed["Schedule"] == selected_schedule]
-        if selected_condition != "All":
-            displayed = displayed[displayed["Condition"] == selected_condition]
-        if selected_location != "All":
-            displayed = displayed[displayed["Fault_Location"] == selected_location]
-
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Scenario-hour records", len(displayed))
-        c2.metric("Scenario configurations", displayed["Scenario_ID"].nunique())
-        c3.metric("Schedules", displayed["Schedule"].nunique())
-
-        st.dataframe(displayed, use_container_width=True, hide_index=True, height=520)
-        st.caption("For field definitions, see `DATA_DICTIONARY.md`. Keep rows with the same Scenario_ID together when splitting data for later model evaluation.")
-        st.download_button(
-            "Download filtered data as CSV",
-            data=displayed.to_csv(index=False).encode("utf-8"),
-            file_name="labeled_fault_scenarios.csv",
-            mime="text/csv",
-        )
-elif view == "Method comparison":
-    dataset_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
-    model_path = Path(DEFAULT_MODEL_PATH)
-    st.subheader("Random Forest vs schedule-aware threshold")
-    st.caption("Both methods are compared on the same held-out night-schedule records.")
-    if not dataset_path.exists() or not model_path.exists():
-        st.error("The scenario dataset or saved Random Forest model is missing. Generate the dataset and run train_model.py first.")
-    else:
-        with st.spinner("Loading model and preparing the held-out comparison…"):
-            predictions, metrics = cached_method_comparison(
-                str(dataset_path),
-                str(model_path),
-                dataset_path.stat().st_mtime,
-                model_path.stat().st_mtime,
-            )
-
-        st.info(
-            f"Test set: {metrics['test_rows']} night-schedule records from "
-            f"{metrics['test_scenario_configurations']} scenario configurations. "
-            "The Random Forest was trained on morning and afternoon profiles."
-        )
-
-        rf = metrics["random_forest"]
-        threshold = metrics["schedule_aware_threshold"]
-        metric_rows = [
-            ("Condition accuracy", "accuracy", "percent"),
-            ("Condition macro F1", "macro_f1", "percent"),
-            ("Fault-location accuracy", "fault_location_accuracy", "percent"),
-            ("Missed-fault rate", "missed_fault_rate", "percent"),
-            ("False-alert rate", "false_alert_rate", "percent"),
-            ("Mean processing time per record", "processing_ms_per_record", "milliseconds"),
-        ]
-        table_rows = []
-        for label, key, unit in metric_rows:
-            if unit == "percent":
-                rf_value, threshold_value = f"{rf[key] * 100:.1f}%", f"{threshold[key] * 100:.1f}%"
+    elif view == "Pipeline view":
+        data_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
+        if not data_path.exists():
+            st.error("The labeled scenario CSV is missing. Run generate_labeled_dataset.py to create it.")
+        else:
+            dataset = pd.read_csv(data_path)
+            controls = st.columns(4)
+            schedule = controls[0].selectbox("Schedule", sorted(dataset["Schedule"].unique()), key="pipe_schedule")
+            condition = controls[1].selectbox("Condition", ["normal", "leak", "clog"], key="pipe_condition")
+            if condition == "normal":
+                severity, location = "none", "none"
+                controls[2].selectbox("Severity", ["Not applicable"], disabled=True, key="pipe_severity_normal")
+                controls[3].selectbox("Fault zone", ["No fault"], disabled=True, key="pipe_location_normal")
             else:
-                rf_value, threshold_value = f"{rf[key]:.3f} ms", f"{threshold[key]:.3f} ms"
-            table_rows.append({"Measure": label, "Random Forest": rf_value, "Schedule-aware threshold": threshold_value})
-        st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+                severity = controls[2].selectbox("Severity", ["mild", "moderate", "severe"], key="pipe_severity")
+                location = controls[3].selectbox("Fault zone", ["Zone A", "Zone B", "Zone C"], key="pipe_location")
+            scenario = dataset.loc[
+                (dataset["Schedule"] == schedule)
+                & (dataset["Condition"] == condition)
+                & (dataset["Severity"] == severity)
+                & (dataset["Fault_Location"] == location)
+            ]
+            hours = sorted(scenario["Hour"].unique())
+            hour = st.select_slider("Simulation hour", options=hours, value=hours[0], format_func=lambda value: f"Hour {value}")
+            reading = scenario.loc[scenario["Hour"] == hour].iloc[0]
+            st.markdown(f"**{schedule.title()} schedule · {condition.title()} · {str(severity).title()} · {location.title()} · Hour {hour}**")
+            st.pyplot(draw_context_map(reading, highlighted_zone=location if condition != "normal" else None), use_container_width=True)
+            st.caption("Map labels and readings are linked to the selected simulated scenario. The geographic image is context only; pipe geometry and locations are illustrative, not real campus infrastructure.")
+    elif view == "Watering data":
+        data_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
+        st.subheader("Labeled irrigation scenario dataset")
+        st.caption("WNTR-generated hydraulic readings across normal operation, leaks, and clogs.")
+        if not data_path.exists():
+            st.error("The labeled scenario CSV is missing. Run generate_labeled_dataset.py to create it.")
+        else:
+            dataset = pd.read_csv(data_path)
+            f1, f2, f3 = st.columns(3)
+            selected_schedule = f1.selectbox("Schedule", ["All", *sorted(dataset["Schedule"].unique())])
+            selected_condition = f2.selectbox("Condition", ["All", *sorted(dataset["Condition"].unique())])
+            selected_location = f3.selectbox("Fault location", ["All", *sorted(dataset["Fault_Location"].unique())])
 
-        clog_rows = [
-            {
-                "Clog severity (test condition)": severity.title(),
-                "Random Forest clog recall": f"{rf['clog_recall_by_severity'][severity] * 100:.1f}%",
-                "Threshold clog recall": f"{threshold['clog_recall_by_severity'][severity] * 100:.1f}%",
-            }
-            for severity in ("mild", "moderate", "severe")
-        ]
-        st.markdown("**Clog recall by severity**")
-        st.dataframe(pd.DataFrame(clog_rows), use_container_width=True, hide_index=True)
+            displayed = dataset.copy()
+            if selected_schedule != "All":
+                displayed = displayed[displayed["Schedule"] == selected_schedule]
+            if selected_condition != "All":
+                displayed = displayed[displayed["Condition"] == selected_condition]
+            if selected_location != "All":
+                displayed = displayed[displayed["Fault_Location"] == selected_location]
 
-        class_rows = []
-        for method_name, result in (("Random Forest", rf), ("Schedule-aware threshold", threshold)):
-            for condition, scores in result["per_class"].items():
-                class_rows.append(
-                    {
-                        "Method": method_name,
-                        "Condition": condition,
-                        "Precision": f"{scores['precision'] * 100:.1f}%",
-                        "Recall": f"{scores['recall'] * 100:.1f}%",
-                    }
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Scenario-hour records", len(displayed))
+            c2.metric("Scenario configurations", displayed["Scenario_ID"].nunique())
+            c3.metric("Schedules", displayed["Schedule"].nunique())
+
+            show_table(displayed, use_container_width=True, hide_index=True, height=520)
+            st.caption("For field definitions, see `DATA_DICTIONARY.md`. Keep rows with the same Scenario_ID together when splitting data for later model evaluation.")
+            st.download_button(
+                "Download filtered data as CSV",
+                data=displayed.to_csv(index=False).encode("utf-8"),
+                file_name="labeled_fault_scenarios.csv",
+                mime="text/csv",
+            )
+    elif view == "Method comparison":
+        dataset_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
+        model_path = Path(DEFAULT_MODEL_PATH)
+        st.subheader("Random Forest vs schedule-aware threshold")
+        st.caption("Both methods are compared on the same held-out night-schedule records.")
+        if not dataset_path.exists() or not model_path.exists():
+            st.error("The scenario dataset or saved Random Forest model is missing. Generate the dataset and run train_model.py first.")
+        else:
+            with st.spinner("Loading model and preparing the held-out comparison…"):
+                predictions, metrics = cached_method_comparison(
+                    str(dataset_path),
+                    str(model_path),
+                    dataset_path.stat().st_mtime,
+                    model_path.stat().st_mtime,
                 )
-        st.markdown("**Precision and recall by condition**")
-        st.dataframe(pd.DataFrame(class_rows), use_container_width=True, hide_index=True)
 
-        st.markdown("**Held-out scenario predictions**")
-        filter_col1, filter_col2, filter_col3 = st.columns(3)
-        condition_filter = filter_col1.selectbox("Actual condition", ["All", *sorted(predictions["Condition"].unique())])
-        severity_filter = filter_col2.selectbox("Fault severity", ["All", *sorted(predictions["Severity"].unique())])
-        location_filter = filter_col3.selectbox("Actual location", ["All", *sorted(predictions["Fault_Location"].unique())])
-        displayed = predictions.copy()
-        if condition_filter != "All":
-            displayed = displayed[displayed["Condition"] == condition_filter]
-        if severity_filter != "All":
-            displayed = displayed[displayed["Severity"] == severity_filter]
-        if location_filter != "All":
-            displayed = displayed[displayed["Fault_Location"] == location_filter]
-        prediction_columns = [
-            "Scenario_ID", "Hour", "Condition", "Severity", "Fault_Location",
-            "Predicted_Condition", "Predicted_Fault_Location", "Threshold_Alert",
-            "Threshold_Condition", "Threshold_Location",
-        ]
-        st.dataframe(displayed[prediction_columns], use_container_width=True, hide_index=True, height=420)
-        st.caption(metrics["response_time_note"])
-
-elif view == "Live Diagnosis":
-
-    st.subheader("Live Fault Diagnosis")
-
-    dataset_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
-
-    if not dataset_path.exists():
-
-        st.error("Dataset not found.")
-
-    else:
-
-        data = pd.read_csv(dataset_path)
-        st.markdown("## 📈 System Overview")
-        s1, s2, s3 = st.columns(3)
-        s1.metric(
-            "Scenarios",
-            data["Scenario_ID"].nunique()
-            )
-        s2.metric(
-            "Zones",
-            3
-            )
-        s3.metric(
-            "Fault Types",
-            "Leak / Clog"
-            )
-        st.divider()
-
-        st.markdown("## ⚙️ Scenario Selection")
-        selected_scenario = st.selectbox(
-            "Choose a Scenario",
-            sorted(data["Scenario_ID"].unique())
+            st.info(
+                f"Test set: {metrics['test_rows']} night-schedule records from "
+                f"{metrics['test_scenario_configurations']} scenario configurations. "
+                "The Random Forest was trained on morning and afternoon profiles."
             )
 
-        scenario_data = data[
-            data["Scenario_ID"] == selected_scenario
-        ]
+            rf = metrics["random_forest"]
+            threshold = metrics["schedule_aware_threshold"]
+            with st.container(key="results-panel"):
+                st.markdown("#### Performance overview")
+                st.caption("Random Forest is the primary method; the schedule-aware threshold is the benchmark. All charts use predictions from the same held-out night-schedule records. Lower is better for missed faults and false warnings.")
+                st.pyplot(draw_comparison_chart(metrics), use_container_width=True)
 
-        st.markdown("## 📊 Sensor Readings")
-        row = scenario_data.iloc[0]
-        st.markdown("#### Pressure Readings (kPa)")
-        p1, p2, p3 = st.columns(3)
-        
-        with p1:
-            st.metric(
-                "Zone A",
-                f"{row['Pressure_ZoneA_kPa']:.1f}"
-                )
-            
-        with p2:
-            st.metric(
-                "Zone B",
-                f"{row['Pressure_ZoneB_kPa']:.1f}"
-                )
-        
-        with p3:
-            st.metric(
-                "Zone C",
-                f"{row['Pressure_ZoneC_kPa']:.1f}"
-                )
-            
-        st.markdown("#### Flow Readings (L/min)")
-        
-        f1, f2, f3 = st.columns(3)
-        
-        with f1:
-            st.metric(
-                "Zone A",
-                f"{row['Flow_ZoneA_L_min']:.1f}"
-                )
-            
-        with f2:
-            st.metric(
-                "Zone B",
-                f"{row['Flow_ZoneB_L_min']:.1f}"
-                )
-            
-        with f3:
-            st.metric(
-                "Zone C",
-                f"{row['Flow_ZoneC_L_min']:.1f}"
-                )
+                chart_col1, chart_col2 = st.columns([1.2, 1])
+                with chart_col1:
+                    st.pyplot(draw_clog_severity_chart(metrics), use_container_width=True)
+                with chart_col2:
+                    st.pyplot(draw_processing_time_chart(metrics), use_container_width=True)
 
-        if st.button("Run Diagnosis"):
+                st.pyplot(draw_class_precision_recall_chart(metrics), use_container_width=True)
 
-            ml_result = predict_records(
-                scenario_data
+                st.markdown("#### Random Forest summary")
+                rf_metric1, rf_metric2, rf_metric3 = st.columns(3)
+                rf_metric1.metric("Macro F1", f"{rf['macro_f1']:.1%}", help="Unweighted average F1 across normal, leak and clog classes.")
+                rf_metric2.metric("Fault-location accuracy", f"{rf['fault_location_accuracy']:.1%}")
+                rf_metric3.metric("Missed-fault rate", f"{rf['missed_fault_rate']:.1%}")
+
+                st.markdown("#### Where each method gets the diagnosis right")
+                st.caption("Each cell shows the number of records in that actual-versus-predicted class. The diagonal cells are correct predictions.")
+                matrix_col1, matrix_col2 = st.columns(2)
+                with matrix_col1:
+                    st.pyplot(draw_confusion_matrix(predictions, "Predicted_Condition", "Random Forest"), use_container_width=True)
+                with matrix_col2:
+                    st.pyplot(draw_confusion_matrix(predictions, "Threshold_Condition", "Schedule-aware threshold"), use_container_width=True)
+
+            st.markdown("#### Exact evaluation measures")
+            metric_rows = [
+                ("Condition accuracy", "accuracy", "percent"),
+                ("Condition macro F1", "macro_f1", "percent"),
+                ("Fault-location accuracy", "fault_location_accuracy", "percent"),
+                ("Missed-fault rate", "missed_fault_rate", "percent"),
+                ("False-alert rate", "false_alert_rate", "percent"),
+                ("Mean processing time per record", "processing_ms_per_record", "milliseconds"),
+            ]
+            table_rows = []
+            for label, key, unit in metric_rows:
+                if unit == "percent":
+                    rf_value, threshold_value = f"{rf[key] * 100:.1f}%", f"{threshold[key] * 100:.1f}%"
+                else:
+                    rf_value, threshold_value = f"{rf[key]:.3f} ms", f"{threshold[key]:.3f} ms"
+                table_rows.append({"Measure": label, "Random Forest": rf_value, "Schedule-aware threshold": threshold_value})
+            show_table(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+
+            class_rows = []
+            for method_name, result in (("Random Forest", rf), ("Schedule-aware threshold", threshold)):
+                for condition, scores in result["per_class"].items():
+                    class_rows.append(
+                        {
+                            "Method": method_name,
+                            "Condition": condition,
+                            "Precision": f"{scores['precision'] * 100:.1f}%",
+                            "Recall": f"{scores['recall'] * 100:.1f}%",
+                        }
+                    )
+            st.markdown("**Precision and recall by condition**")
+            show_table(pd.DataFrame(class_rows), use_container_width=True, hide_index=True)
+
+            st.markdown("**Held-out scenario predictions**")
+            filter_col1, filter_col2, filter_col3 = st.columns(3)
+            condition_filter = filter_col1.selectbox("Actual condition", ["All", *sorted(predictions["Condition"].unique())])
+            severity_filter = filter_col2.selectbox("Fault severity", ["All", *sorted(predictions["Severity"].unique())])
+            location_filter = filter_col3.selectbox("Actual location", ["All", *sorted(predictions["Fault_Location"].unique())])
+            displayed = predictions.copy()
+            if condition_filter != "All":
+                displayed = displayed[displayed["Condition"] == condition_filter]
+            if severity_filter != "All":
+                displayed = displayed[displayed["Severity"] == severity_filter]
+            if location_filter != "All":
+                displayed = displayed[displayed["Fault_Location"] == location_filter]
+            prediction_columns = [
+                "Scenario_ID", "Hour", "Condition", "Severity", "Fault_Location",
+                "Predicted_Condition", "Predicted_Fault_Location", "Threshold_Alert",
+                "Threshold_Condition", "Threshold_Location",
+            ]
+            show_table(displayed[prediction_columns], use_container_width=True, hide_index=True, height=420)
+            st.caption(metrics["response_time_note"])
+
+    elif view == "Live Diagnosis":
+
+        st.subheader("Live Fault Diagnosis")
+
+        dataset_path = Path(__file__).parent / "outputs" / "labeled_fault_scenarios.csv"
+
+        if not dataset_path.exists():
+
+            st.error("Dataset not found.")
+
+        else:
+
+            data = pd.read_csv(dataset_path)
+
+            selected_scenario = st.selectbox(
+                "Select Scenario",
+                sorted(data["Scenario_ID"].unique())
             )
 
-            threshold_result = predict_thresholds(
-                scenario_data,
-                baseline_data=data
+            scenario_data = data[
+                data["Scenario_ID"] == selected_scenario
+            ]
+
+            selected_hour = st.selectbox(
+                "Simulation hour",
+                sorted(scenario_data["Hour"].unique()),
+                format_func=lambda hour: f"Hour {hour}",
+            )
+            selected_reading = scenario_data[scenario_data["Hour"] == selected_hour].copy()
+
+            st.markdown("### Sensor Readings")
+
+            sensor_cols = [
+                "Pressure_ZoneA_kPa",
+                "Pressure_ZoneB_kPa",
+                "Pressure_ZoneC_kPa",
+                "Flow_ZoneA_L_min",
+                "Flow_ZoneB_L_min",
+                "Flow_ZoneC_L_min",
+            ]
+
+            show_table(
+                selected_reading[sensor_cols],
+                use_container_width=True
             )
 
-            ml_condition = ml_result[
-                "Predicted_Condition"
-            ].iloc[0]
+            if st.button("Run Diagnosis"):
 
-            ml_location = ml_result[
-                "Predicted_Fault_Location"
-            ].iloc[0]
-
-            threshold_condition = threshold_result[
-                "Threshold_Condition"
-            ].iloc[0]
-
-            threshold_location = threshold_result[
-                "Threshold_Location"
-            ].iloc[0]
-
-            st.markdown("---")
-            if ml_condition == "normal":
-                st.success(
-                    "✅ System Status: NORMAL OPERATION"
-                    )
-                
-            else:
-                st.error(
-                    f"🚨 FAULT DETECTED: {ml_condition.upper()} at {ml_location}"
-                    )
-                
-            st.markdown("---")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.success(
-                    "🤖 AI Diagnosis"
-                    )
-                
-                st.metric(
-                    "Condition",
-                    ml_condition.upper()
-                    )
-                
-                st.metric(
-                    "Fault Location",
-                    ml_location
-                    )
-
-            with col2:
-                st.warning(
-                    "📏 Threshold Diagnosis"
-                    )
-                st.metric(
-                    "Condition",                        
-                    threshold_condition.upper()
-                    )
-                st.metric(
-                    "Fault Location",
-                    threshold_location
-                    )
-
-            st.markdown(
-                "## 🔍 Diagnostic Method Comparison"
+                ml_result = predict_records(
+                    selected_reading
                 )
 
-            comparison = pd.DataFrame(
-                {
-                    "Method": [
-                        "Random Forest",
-                        "Threshold"
-                    ],
-                    "Condition": [
-                        ml_condition,
-                        threshold_condition
-                    ],
-                    "Location": [
-                        ml_location,
-                        threshold_location
+                threshold_result = predict_thresholds(
+                    selected_reading,
+                    baseline_data=data
+                )
+
+                ml_condition = ml_result[
+                    "Predicted_Condition"
+                ].iloc[0]
+
+                ml_location = ml_result[
+                    "Predicted_Fault_Location"
+                ].iloc[0]
+
+                threshold_condition = threshold_result[
+                    "Threshold_Condition"
+                ].iloc[0]
+
+                threshold_location = threshold_result[
+                    "Threshold_Location"
+                ].iloc[0]
+
+                fault_alert = ml_condition != "normal" or bool(threshold_result["Threshold_Alert"].iloc[0])
+                notification_title = "Simulated fault alert" if fault_alert else "Normal simulation result"
+                notification_detail = (
+                    f"{selected_scenario}, hour {selected_hour}. Random Forest: {ml_condition} at {ml_location}; "
+                    f"threshold: {threshold_condition} at {threshold_location}."
+                )
+                ui_theme.add_notification(
+                    notification_title,
+                    notification_detail,
+                    kind="alert" if fault_alert else "info",
+                )
+
+                with st.container(key="diagnosis-results"):
+                    st.markdown("### Diagnosis results")
+                    st.caption(f"Simulated result · {selected_scenario} · hour {selected_hour}")
+                    reading = selected_reading.iloc[0]
+                    baseline_match = data.loc[
+                        (data["Condition"] == "normal")
+                        & (data["Schedule"] == reading["Schedule"])
+                        & (data["Hour"] == reading["Hour"])
                     ]
-                }
-            )
+                    if not baseline_match.empty:
+                        st.markdown("#### Sensor changes from the matching normal baseline")
+                        st.caption("Bars show observed minus expected pressure and flow for this schedule and hour. Colors identify each method’s suspected zone.")
+                        st.pyplot(
+                            draw_sensor_deviations(
+                                reading,
+                                baseline_match.iloc[0],
+                                ml_location,
+                                threshold_location,
+                            ),
+                            use_container_width=True,
+                        )
 
-            st.dataframe(
-                comparison,
-                hide_index=True,
-                use_container_width=True
-            )
-            st.markdown("## 🌐 Network View")
-            fig, ax = plt.subplots(figsize=(10, 5))
-            fault_zone = None
-            
-            if ml_location != "none":
-                fault_zone = ml_location
-                
-            draw_network(
-                ax,
-                show_measurements=True,
-                fault_zone=fault_zone
-                )
-            st.pyplot(
-                fig,
-                use_container_width=True
-                )
+                    col1, col2 = st.columns([1.15, .85])
+
+                    with col1:
+                        with st.container(key="rf-diagnosis-card"):
+                            st.markdown("**Random Forest classifier · primary diagnosis**")
+                            st.metric("Predicted condition", ml_condition.title())
+                            st.metric("Suspected location", ml_location)
+
+                    with col2:
+                        with st.container(key="threshold-diagnosis-card"):
+                            st.markdown("**Schedule-aware threshold · baseline**")
+                            st.metric("Predicted condition", threshold_condition.replace("_", " ").title())
+                            st.metric("Suspected location", threshold_location)
+
+                    comparison = pd.DataFrame(
+                        {
+                            "Method": ["Random Forest", "Schedule-aware threshold"],
+                            "Condition": [ml_condition, threshold_condition],
+                            "Location": [ml_location, threshold_location],
+                        }
+                    )
+                    show_table(comparison, hide_index=True, use_container_width=True)

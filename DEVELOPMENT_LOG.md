@@ -164,3 +164,109 @@
 - **Limitations:** These results demonstrate consistency within the synthetic WNTR dataset. They do not establish physical accuracy against real irrigation measurements.
 - **Status:** Initial zone and schedule validation completed.
 - **Evidence:** `evidence/04_zone_schedule_validation/E08_zone_schedule_validation.png`.
+
+## 2026-11-02 — Orbit-inspired dashboard visual refresh
+
+- **Reference:** Reviewed the group's Orbit repository and adapted its dark forest-green palette, rounded panel styling, compact left navigation, and typography for the irrigation prototype.
+- **Change:** Added a Streamlit dark theme, sidebar workspace navigation, green accent states, coordinated notice and input styling, and dark backgrounds with higher-contrast labels for the simulated network diagrams. Set Pipeline view as the landing view so the dashboard opens without waiting for optional satellite tiles. The satellite map, dataset, model, and threshold functions remain the same.
+- **Preview:** Opened the local Streamlit preview and visually checked the Orbit-inspired sidebar and pipeline view. The dataset and method-comparison views remain available through the sidebar navigation.
+- **Scope:** The adaptation is limited to visual styling; irrigation functions and labels remain project-specific.
+
+## 2026-11-02 — Dashboard navigation and working theme switch
+
+- **Change:** Replaced the sidebar emoji with an inline water mark, added a workspace card and grouped navigation, and added a date, theme toggle, notifications control, and initials avatar in the top bar.
+- **Visual design:** Changed the default palette to warm ivory, pine green, and copper. Added a coordinated dark palette, with the toggle selecting the theme through Streamlit session state.
+- **Verification:** Python syntax compilation and `git diff --check` passed. The local preview loaded with the sidebar navigation, top bar, theme switch, and dashboard content visible.
+
+## 2026-11-02 — Simplify study-area and refine navigation
+
+- **Change:** Removed the placeholder workspace/account-style card and the Esri API-key map path. Replaced the block-filled study-area fallback with an offline circular 3 km schematic showing hypothetical zones and no rectangular background shapes.
+- **Navigation:** Scoped primary action styling to the main content and restored a distinct neutral inactive state for sidebar navigation buttons.
+- **Top bar:** Adjusted column proportions and spacing for the date, theme switch, notification control, and initials mark.
+- **Documentation:** Updated the README to state that the study-area schematic requires no provider account, map key, or external tiles.
+- **Verification:** Python syntax compilation and `git diff --check` passed. Source review confirmed that the study-area view no longer requests a provider key or draws rectangular background blocks. A fresh browser visual check is still needed after the app reloads.
+
+
+## 2026-11-07 — Apply refreshed dashboard interface
+
+- **Change:** Applied the refreshed Streamlit interface, grouped sidebar navigation, top bar, and coordinated light and dark themes from the supplied design package. Added `ui_theme.py` and placed the Streamlit theme configuration in `.streamlit/config.toml`.
+- **Scope:** Kept the simulation, dataset, classifier, threshold method, and evaluation modules intact. The study-area diagram remains an illustrative simulation context and does not depict real UOW infrastructure.
+- **Accessibility/detail:** Updated the avatar description to “Project initials” so it does not imply account sign-in.
+- **Verification:** Python syntax compilation and Git whitespace checks are recorded after applying the files.
+
+## 2026-11-08 — Dashboard visual polish
+
+- **Change:** Refined the font stack and heading weights, tightened the Dubai top bar, hid Streamlit's connection-status badge, and styled select menus, focus states, buttons, and the theme switch with the existing light and dark palettes.
+- **Scope:** Visual styling only; simulation, dataset, classifier and threshold behaviour were not changed.
+- **Verification:** Python syntax compilation and `git diff --check` passed. A live browser preview could not be opened in this session because the local Streamlit port did not accept a connection.
+
+## 2026-11-08 — Dashboard palette, alerts and result visuals
+
+- **Visual update:** Replaced the orange and green palette with white/slate surfaces and navy/cyan accents, including a coordinated dark mode with high-contrast light dropdown controls. Refined headings, navigation icons, menus and focus states.
+- **Interaction:** Replaced the decorative bell with an in-app notifications popover. Running a diagnosis adds a session notification with its scenario, hour and both method predictions; users can clear the list.
+- **Results:** Added paired performance bars, clog-recall-by-severity bars, and separate confusion matrices for the Random Forest and threshold method. Result panels animate into view and respect reduced-motion preferences.
+- **Verification:** Python compilation and whitespace checks passed. All four chart types rendered with both palettes using the saved evaluation outputs. A full live-browser preview could not be opened in this session.
+- **Scope:** Diagnostic calculations and source readings were not changed. All displayed prototype readings remain simulated.
+
+## 2026-11-08 — Page transitions and diagnosis chart
+
+- **Top bar:** Reworked the layout to put a Workspace/page breadcrumb on the left and the Dubai-local date/time, action-style theme button, notification bell and initials on the right.
+- **Navigation:** Added a light page-entry transition keyed to the selected page. Reduced-motion settings disable the movement and shorten transitions.
+- **Diagnosis results:** Added a two-panel bar chart showing each zone's simulated flow and pressure change from the normal baseline for the same schedule and hour. Colors indicate the Random Forest and threshold locations; the existing model results remain visible below it.
+- **Verification:** Python compilation, chart rendering with both themes and Git whitespace checks passed. The diagnosis-chart preview was visually inspected; a full live-browser capture remains unavailable in this session.
+
+## 2026-11-08 — Context map and diagnosis visual hierarchy
+
+- **Map:** Replaced the abstract study-area circles and plain topology diagram with the supplied Dubai-area map as geographic context. Added a clearly labeled hypothetical source, manifold and Zone A/B/C pipe overlay with readings drawn from the selected schedule, condition, severity and hour.
+- **Simulation disclosure:** Added an on-map notice that the network is simulated and does not represent real campus pipes. Captions clarify that the map is contextual and overlay positions are illustrative, not surveyed or to scale.
+- **Diagnosis display:** Made the Random Forest output the primary diagnosis card and blue chart signal. The schedule-aware threshold remains visible as a secondary baseline marker so the comparison is still represented accurately.
+- **Verification:** Python syntax compilation and Git whitespace checks passed. No commit or push was made.
+
+## 2026-11-08 — Repair header controls
+
+- **Change:** Replaced the header notification popover with a standard notification button that opens a dismissible panel. The panel supports clearing alerts. Updated the theme action to switch the session theme directly and corrected the icon button styling.
+- **Interaction check:** Sidebar navigation and the schedule selector responded in the browser. The running browser still displayed the older header component after file edits, so the updated header needs a full Streamlit restart before its browser interaction can be confirmed.
+- **Verification:** Python syntax compilation and `git diff --check` passed. No commit or push was made.
+
+## 2026-11-08 — Flatten the workspace header
+
+- **Change:** Removed the rounded, shadowed container around the top bar. It now spans the workspace width with a flat background and a thin bottom divider, while the theme, notification and initials controls remain separate.
+- **Verification:** Python syntax compilation and `git diff --check` passed. Restart Streamlit to load the latest stylesheet in the browser.
+
+## 2026-11-08 — Extend header to workspace edges
+
+- **Change:** Removed the main content width cap from the outer workspace and let the flat top bar span the full area from the sidebar divider to the right edge. Kept page content centered with its own maximum width.
+- **Verification:** Python syntax compilation and `git diff --check` passed. Restart Streamlit to load the latest stylesheet in the browser.
+
+## 2026-11-08 — Pin and repair the workspace header
+
+- **Change:** Pinned the flat header at the top of the workspace and changed its five-column layout to a responsive grid so the breadcrumb, clock, theme control, notification button and initials do not compress into clipped controls.
+- **Interaction adjustment:** Set the complete theme and notification button surfaces to receive clicks. Simplified notification button placement to avoid nesting it inside its own column.
+- **Responsive behavior:** The clock is hidden at narrower widths to keep the remaining header controls fully visible and usable.
+- **Verification:** Pending a browser refresh after restarting Streamlit; no commit or push was made.
+
+## 2026-11-08 — Correct header column sizing
+
+- **Correction:** The grid override did not match Streamlit's flex-based column layout and could leave header items compressed. Replaced it with explicit flex sizing: the breadcrumb expands, the theme control and icon buttons keep usable widths, and the clock is hidden at narrower widths.
+- **Click targets:** Removed the hover movement from header buttons and made their full button surfaces the click targets.
+- **Verification:** Python syntax and Git whitespace checks passed. A live browser confirmation is still needed after restarting Streamlit.
+
+## 2026-11-08 — Make evaluation visuals explicit for Random Forest
+
+- **Change:** Kept Random Forest as the primary diagnosis method and the schedule-aware threshold as the benchmark on the same held-out night-schedule records.
+- **Graphs:** Added a grouped precision-and-recall chart by condition and a separate backend processing-time chart. Existing overview, clog-severity and confusion-matrix charts continue to read the evaluation outputs for both methods.
+- **Coverage:** The evaluation page reports classification accuracy and macro F1, per-class precision and recall, fault-location accuracy, clog recall by severity, missed-fault and false-alert rates, and processing time.
+- **Verification:** Python syntax and Git whitespace checks passed; live visual verification remains pending.
+
+## 2026-11-08 — Add context to the workspace header
+
+- **Change:** Added a small “Simulated network · 3 zones” status label above the Dubai clock so the wide header communicates the prototype context and uses its vertical space more deliberately.
+- **Accuracy:** The label describes the simulation only and does not imply a live connection or live infrastructure data.
+- **Verification:** Pending visual confirmation in the locally running dashboard.
+
+## 2026-11-08 — Move sidebar navigation up and restore full header hit areas
+
+- **Font:** Kept the existing font stack unchanged as requested.
+- **Sidebar:** Reduced the reserved sidebar header height and removed extra top padding so the brand and navigation start nearer the top while retaining the collapse control.
+- **Header interaction:** The transparent Streamlit toolbar could intercept pointer input over the top of the custom controls. Made the toolbar pass clicks through while preserving its own buttons. Set the theme and notification controls to the same fixed height and removed hover movement so their visual and clickable areas stay aligned.
+- **Verification:** Python syntax and Git whitespace checks passed; confirm interactions in the running browser after the app reloads.
