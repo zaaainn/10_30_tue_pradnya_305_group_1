@@ -289,3 +289,10 @@
 - **Finding:** Render built and started the Streamlit service, but the first hosted page load reported `ModuleNotFoundError: six` while importing WNTR.
 - **Change:** Added `six==1.17.0` explicitly to the deployment requirements so the runtime includes the package needed by WNTR.
 - **Next check:** Confirm the redeployed page opens and displays the irrigation dashboard.
+
+## 2026-11-08 — Build a Dash alternative for local preview
+
+- **Reason:** The user asked to move to a free, Python-based alternative to Streamlit.
+- **Change:** Added `dash_app.py` with the five project views, schedule and fault controls, CSV filtering and download, Random Forest versus threshold evaluation charts, live simulated diagnosis, a Dubai time header, notification popover and persistent light/dark selection. Added responsive styling with a restrained blue/cyan palette and page transitions.
+- **Deployment:** Changed the Render start command to Gunicorn serving Dash and removed Streamlit from the active dependency list. The previous `app.py` remains as a reference and is not used by the Dash server.
+- **Status:** Dash dependencies are installed locally. Keep this conversion local until the user reviews the preview; no changes have been pushed.
