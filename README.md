@@ -104,6 +104,8 @@ Run the same-scenario comparison and save local prediction and metric files with
 
 The comparison holds out the night schedule from Random Forest training. It reports condition accuracy and macro F1, per-class precision and recall, fault-location accuracy, missed-fault and false-alert rates, clog recall by severity, and average backend processing time per record. The timing excludes dashboard rendering and user selection. Outputs are written under `outputs/` for development use.
 
-### Future Render deployment
+### Render deployment
 
-The current app can be deployed later as a Render Web Service. Suggested build command: `pip install -r requirements.txt`. Suggested start command: `streamlit run app.py --server.address 0.0.0.0 --server.port $PORT`.
+This repository includes a Render Blueprint in `render.yaml` and a `.python-version` file. In Render, create a new Blueprint and connect this GitHub repository. Render will install `requirements.txt` and start the Streamlit app on Render's assigned port. The deployed dashboard reads its model, scenario data and study-area image from the repository; it does not require a map API key.
+
+The free web service is suitable for a project preview. Render may put it to sleep after 15 minutes without incoming traffic, so the first visit after idle time can take about a minute to wake. Its running filesystem is temporary, so files created by the app are not durable across restarts or redeploys. Keep project data and model files in Git rather than relying on files generated on the hosted service.

@@ -270,3 +270,16 @@
 - **Sidebar:** Reduced the reserved sidebar header height and removed extra top padding so the brand and navigation start nearer the top while retaining the collapse control.
 - **Header interaction:** The transparent Streamlit toolbar could intercept pointer input over the top of the custom controls. Made the toolbar pass clicks through while preserving its own buttons. Set the theme and notification controls to the same fixed height and removed hover movement so their visual and clickable areas stay aligned.
 - **Verification:** Python syntax and Git whitespace checks passed; confirm interactions in the running browser after the app reloads.
+
+## 2026-11-08 — Adapt the supplied dashboard stylesheet
+
+- **Visual system:** Applied the stylesheet’s Figtree typography, blue and slate light palette, midnight dark palette, fault-status colors, larger sidebar branding, roomier navigation, wider page content, and 80 px workspace header.
+- **Components:** Matched the dashboard cards, controls, borders, spacing, and responsive layout to the supplied design while keeping existing Streamlit pages, buttons, navigation, notifications, and theme toggle behavior intact.
+- **Font fallback:** The dashboard loads Figtree from Google Fonts when available and falls back to local system fonts if the font service cannot be reached.
+- **Verification:** `ui_theme.py` syntax and `git diff --check` checked. Changes remain local; no commit or push was made.
+
+## 2026-11-08 — Prepare the dashboard for Render
+
+- **Deployment setup:** Added a Render Blueprint for the Streamlit web service, with the required public host binding and Render-provided port. Added `.python-version` to select Python 3.13, matching the local environment.
+- **Documentation:** Updated the README with the Render setup path and free-service sleep and temporary-storage behavior.
+- **Verification:** Reviewed the Render start/build settings against Render's current web-service and Python-version documentation. Configuration remains local and has not been pushed or deployed.

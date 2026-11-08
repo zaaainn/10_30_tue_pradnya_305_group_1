@@ -30,33 +30,37 @@ NAV_ICONS = {
     "Live Diagnosis": "troubleshoot",
 }
 
-# Clean white / slate with navy and cyan accents in both light and dark modes.
+# Palette and layout adapted from the supplied irrigation-twin.css design system.
 LIGHT = {
-    "bg": "#f5f7fb", "surface": "#ffffff", "surface2": "#eef2f8", "border": "#dfe6ef",
-    "text": "#18263b", "muted": "#68778c", "accent": "#285bb8", "on_accent": "#ffffff",
-    "accent_soft": "#e7effc", "accent2": "#159bb8",
-    "control_bg": "#f8fafd", "control_text": "#24364e", "control_border": "#d9e2ed", "control_hover": "#eaf1fa",
-    "side_bg": "#ffffff", "side_text": "#18263b", "side_muted": "#758399",
-    "side_hover": "#f3f6fa", "side_active": "#285bb8", "side_active_bg": "#e7effc",
-    "side_active_text": "#214d9a", "side_border": "#e5eaf1",
+    "bg": "#f4f6fa", "surface": "#ffffff", "surface2": "#eef2f9", "border": "#e3e8f0",
+    "border_strong": "#c9d2e0", "text": "#14213d", "muted": "#5b6678",
+    "accent": "#1f4fbf", "accent_hover": "#1a43a3", "on_accent": "#ffffff",
+    "accent_soft": "#e8effd", "accent2": "#0b7490", "control_bg": "#ffffff",
+    "control_text": "#14213d", "control_border": "#e3e8f0", "control_hover": "#eef2f9",
+    "side_bg": "#ffffff", "side_text": "#14213d", "side_muted": "#5b6678",
+    "side_hover": "#eef2f9", "side_active": "#1f4fbf", "side_active_bg": "#e8effd",
+    "side_active_text": "#1f4fbf", "side_border": "#e3e8f0",
+    "leak": "#c23b4e", "clog": "#9a6a00", "ok": "#2f7a55",
     # matplotlib
-    "plot_face": "#ffffff", "plot_text": "#18263b", "plot_muted": "#718096", "pipe": "#9aabc0",
-    "node": "#285bb8", "zone": "#159bb8", "source": "#5275bd", "fault": "#d44d68",
-    "ring": "#285bb8", "ring_fill": "#70cddd", "grid": "#dfe6ef",
-    "chart_low": "#e8eff8", "chart_high": "#2585cf", "chart_cyan": "#20a9bd",
+    "plot_face": "#ffffff", "plot_text": "#14213d", "plot_muted": "#5b6678", "pipe": "#9aa9c0",
+    "node": "#1f4fbf", "zone": "#0b7490", "source": "#5778bf", "fault": "#c23b4e",
+    "ring": "#1f4fbf", "ring_fill": "#4cc3e0", "grid": "#e3e8f0",
+    "chart_low": "#eef2f9", "chart_high": "#1f4fbf", "chart_cyan": "#0b7490",
 }
 DARK = {
-    "bg": "#0c1422", "surface": "#131e30", "surface2": "#1b2940", "border": "#2a3a54",
-    "text": "#e8eef8", "muted": "#9babc0", "accent": "#64aaff", "on_accent": "#081524",
-    "accent_soft": "#1b3555", "accent2": "#4bc3d5",
-    "control_bg": "#edf2f8", "control_text": "#253750", "control_border": "#d2dce9", "control_hover": "#dfe9f5",
-    "side_bg": "#09111e", "side_text": "#e8eef8", "side_muted": "#91a3bb",
-    "side_hover": "#101d2e", "side_active": "#64aaff", "side_active_bg": "#172b43",
-    "side_active_text": "#e8eef8", "side_border": "#1c2b41",
-    "plot_face": "#131e30", "plot_text": "#e8eef8", "plot_muted": "#9babc0", "pipe": "#4a5d78",
-    "node": "#64aaff", "zone": "#4bc3d5", "source": "#94b5e8", "fault": "#f0788b",
-    "ring": "#64aaff", "ring_fill": "#4bc3d5", "grid": "#2a3a54",
-    "chart_low": "#1b2940", "chart_high": "#64aaff", "chart_cyan": "#4bc3d5",
+    "bg": "#0f1626", "surface": "#172036", "surface2": "#1d2843", "border": "#27324d",
+    "border_strong": "#38466a", "text": "#e8ecf5", "muted": "#9aa6bd",
+    "accent": "#6b93ff", "accent_hover": "#86a6ff", "on_accent": "#0f1626",
+    "accent_soft": "#1f2e57", "accent2": "#4cc3e0", "control_bg": "#172036",
+    "control_text": "#e8ecf5", "control_border": "#38466a", "control_hover": "#1d2843",
+    "side_bg": "#172036", "side_text": "#e8ecf5", "side_muted": "#9aa6bd",
+    "side_hover": "#1d2843", "side_active": "#6b93ff", "side_active_bg": "#1f2e57",
+    "side_active_text": "#e8ecf5", "side_border": "#27324d",
+    "leak": "#ff7a8c", "clog": "#e5b04a", "ok": "#5fcf97",
+    "plot_face": "#172036", "plot_text": "#e8ecf5", "plot_muted": "#9aa6bd", "pipe": "#455675",
+    "node": "#6b93ff", "zone": "#4cc3e0", "source": "#9ab1ed", "fault": "#ff7a8c",
+    "ring": "#6b93ff", "ring_fill": "#4cc3e0", "grid": "#27324d",
+    "chart_low": "#1d2843", "chart_high": "#6b93ff", "chart_cyan": "#4cc3e0",
 }
 
 
@@ -71,9 +75,10 @@ def tokens() -> dict:
 # ---------------------------------------------------------------- CSS
 
 _STATIC_CSS = """
-/* A restrained system-font stack keeps the UI crisp without relying on remote fonts. */
+/* Figtree follows the supplied design system; local system fonts remain the fallback. */
 html, body, [class*="css"], [data-testid="stAppViewContainer"] {
-  font-family: Inter, "Aptos", "Segoe UI", Arial, sans-serif;
+  font-family: Figtree, "Segoe UI", Arial, sans-serif;
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -85,15 +90,13 @@ html, body, [class*="css"], [data-testid="stAppViewContainer"] {
 /* Hide Deploy / menu / footer only; the sidebar expand button lives in the toolbar and must stay */
 #MainMenu, footer, [data-testid="stDecoration"], [data-testid="stAppDeployButton"], [data-testid="stMainMenu"], [data-testid="stStatusWidget"] { display: none; }
 [data-testid="stExpandSidebarButton"] { color: var(--text); }
-[data-testid="stMainBlockContainer"] {
-  padding: 0 0 3.5rem; max-width: none;
-}
+[data-testid="stMainBlockContainer"] { padding: 0 0 3.5rem; max-width: none; }
 
 /* Text */
 [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3,
 [data-testid="stMain"] p, [data-testid="stMain"] label, [data-testid="stMain"] li,
 [data-testid="stMain"] [data-testid="stWidgetLabel"] p { color: var(--text); }
-[data-testid="stMain"] h1 { font-weight: 680; letter-spacing: -0.035em; font-size: clamp(1.7rem, 2vw, 2.05rem); line-height: 1.18; }
+[data-testid="stMain"] h1 { font-weight: 700; letter-spacing: -0.035em; font-size: clamp(2rem, 2.7vw, 2.85rem); line-height: 1.15; }
 [data-testid="stMain"] h2, [data-testid="stMain"] h3 { font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; }
 [data-testid="stMain"] p, [data-testid="stMain"] li { line-height: 1.55; }
 [data-testid="stMain"] [data-testid="stCaptionContainer"] { opacity: 1; }
@@ -143,7 +146,7 @@ html, body, [class*="css"], [data-testid="stAppViewContainer"] {
   min-height: 40px; transition: transform .12s ease, filter .12s ease;
 }
 [data-testid="stMain"] [data-testid="stBaseButton-secondary"] p { color: var(--on_accent); }
-[data-testid="stMain"] [data-testid="stBaseButton-secondary"]:hover { filter: brightness(1.06); transform: translateY(-1px); }
+[data-testid="stMain"] [data-testid="stBaseButton-secondary"]:hover { background: var(--accent_hover); filter: none; transform: translateY(-1px); }
 
 /* Themed HTML tables (st.dataframe cannot follow a runtime dark-mode switch) */
 .tbl-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: .6rem; }
@@ -161,6 +164,7 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
 
 /* ---------------- Sidebar ---------------- */
 [data-testid="stSidebar"] { background: var(--side_bg); border-right: 1px solid var(--side_border); }
+[data-testid="stSidebar"] { min-width: 300px !important; max-width: 300px !important; }
 [data-testid="stSidebar"] [data-testid="stSidebarHeader"] {
   height: 2.35rem !important; min-height: 2.35rem !important; padding: 0 .65rem !important;
   margin: 0 !important; background: transparent;
@@ -168,15 +172,15 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
 [data-testid="stSidebar"] [data-testid="stSidebarHeader"] button { height: 2rem; width: 2rem; }
 [data-testid="stSidebarUserContent"] { padding-top: 0 !important; }
 [data-testid="stSidebar"] button[kind="headerNoPadding"] svg, [data-testid="stSidebarCollapseButton"] svg { color: var(--side_muted); }
-[data-testid="stSidebarContent"] { padding: 0 .9rem 1rem !important; }
-.brand { display: flex; gap: .7rem; align-items: center; padding: .3rem .3rem .9rem; margin-top: 0; }
+[data-testid="stSidebarContent"] { padding: 0 1.1rem 1.25rem !important; }
+.brand { display: flex; gap: .85rem; align-items: center; padding: .4rem .3rem 1.1rem; margin-top: 0; }
 .brand .mark {
-  width: 38px; height: 38px; border-radius: 11px; background: var(--side_active);
+  width: 44px; height: 44px; border-radius: 12px; background: var(--side_active);
   display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
 }
-.brand .name { color: var(--side_text); font-weight: 800; font-size: 1.08rem; line-height: 1.15; }
-.brand .sub { color: var(--side_muted); font-size: .76rem; }
-.nav-group { color: var(--side_muted); font-size: .78rem; font-weight: 600; padding: .9rem .4rem .35rem; }
+.brand .name { color: var(--side_text); font-weight: 700; font-size: 1.22rem; letter-spacing: -.01em; line-height: 1.15; }
+.brand .sub { color: var(--side_muted); font-size: .84rem; }
+.nav-group { color: var(--side_muted); font-size: .78rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; padding: 1.05rem .4rem .4rem; }
 
 /* Left-align the label inside every nav button (Streamlit centres its inner wrappers) */
 [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] > div,
@@ -189,7 +193,7 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
 /* Inactive navigation item */
 [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
   background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 8px;
-  justify-content: flex-start; padding: .55rem .8rem; width: 100%; box-shadow: none;
+  justify-content: flex-start; padding: .7rem .85rem; width: 100%; min-height: 44px; box-shadow: none;
 }
 [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] p { color: var(--side_muted); font-weight: 500; text-align: left; }
 [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:hover { background: var(--side_hover); }
@@ -197,7 +201,7 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
 /* Active navigation item */
 [data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
   background: var(--side_active_bg); border: 0; border-left: 3px solid var(--side_active); border-radius: 8px;
-  justify-content: flex-start; padding: .55rem .8rem; width: 100%; box-shadow: none;
+  justify-content: flex-start; padding: .7rem .85rem; width: 100%; min-height: 44px; box-shadow: none;
 }
 [data-testid="stSidebar"] [data-testid="stBaseButton-primary"] p { color: var(--side_active_text); font-weight: 700; text-align: left; }
 [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:focus-visible,
@@ -210,10 +214,10 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
   position: sticky; top: 0; z-index: 1000;
   width: 100%; max-width: none; margin: 0 0 1.35rem;
   background: var(--bg); border: 0; border-bottom: 1px solid var(--border); border-radius: 0;
-  padding: .55rem 2rem; box-shadow: none;
+  min-height: 80px; padding: 0 40px; box-shadow: none;
 }
 .st-key-topbar [data-testid="stHorizontalBlock"] {
-  display: flex !important; flex-wrap: nowrap; width: 100%; min-height: 48px;
+  display: flex !important; flex-wrap: nowrap; width: 100%; min-height: 78px;
   align-items: center; gap: .7rem;
 }
 .st-key-topbar [data-testid="stColumn"] {
@@ -280,7 +284,7 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
   animation: noticeIn .25s ease both;
 }
 .notification-dot { width: 7px; height: 7px; margin-top: .35rem; border-radius: 50%; background: var(--accent2); }
-.notification-dot.alert { background: #d44d68; }
+.notification-dot.alert { background: var(--leak); }
 .notification-title { color: var(--text); font-size: .84rem; font-weight: 650; }
 .notification-detail { color: var(--muted); font-size: .78rem; line-height: 1.45; margin-top: .15rem; }
 .notification-time { color: var(--muted); font-size: .7rem; margin-top: .25rem; }
@@ -305,7 +309,7 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
 @keyframes pageEnter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes noticeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 [class*="st-key-page-content-"] {
-  width: calc(100% - 3rem); max-width: 1320px; margin-inline: auto;
+  width: calc(100% - 80px); max-width: 1500px; margin-inline: auto;
   animation: pageEnter .28s cubic-bezier(.2,.7,.2,1) both;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -313,8 +317,10 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
 }
 
 @media (max-width: 640px) {
+  [data-testid="stSidebar"] { min-width: min(300px, 86vw) !important; max-width: min(300px, 86vw) !important; }
   [data-testid="stMainBlockContainer"] { padding-left: 0; padding-right: 0; }
-  .st-key-topbar { padding: .5rem .75rem; }
+  .st-key-topbar { min-height: 64px; padding: 0 .75rem; }
+  .st-key-topbar [data-testid="stHorizontalBlock"] { min-height: 62px; }
   [class*="st-key-page-content-"] { width: calc(100% - 2rem); }
   .st-key-topbar [data-testid="stHorizontalBlock"] {
     gap: .4rem;
@@ -328,7 +334,9 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
 }
 
 @media (min-width: 641px) and (max-width: 900px) {
-  .st-key-topbar { padding-inline: 1rem; }
+  [data-testid="stSidebar"] { min-width: 270px !important; max-width: 270px !important; }
+  .st-key-topbar { min-height: 72px; padding-inline: 1rem; }
+  .st-key-topbar [data-testid="stHorizontalBlock"] { min-height: 70px; }
   .st-key-topbar [data-testid="stHorizontalBlock"] { gap: .45rem; }
   .st-key-topbar [data-testid="stColumn"]:nth-child(2) { display: none; }
   .st-key-topbar [data-testid="stColumn"]:nth-child(3) { flex-basis: 148px !important; width: 148px !important; }
@@ -342,7 +350,11 @@ table.tbl tbody tr:hover td { background: var(--surface2); }
 def inject_css() -> None:
     t = tokens()
     variables = ";".join(f"--{k}:{v}" for k, v in t.items() if not k.startswith("plot_"))
-    st.markdown(f"<style>:root{{{variables}}}{_STATIC_CSS}</style>", unsafe_allow_html=True)
+    st.markdown(
+        '<style>@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap");'
+        f":root{{{variables}}}{_STATIC_CSS}</style>",
+        unsafe_allow_html=True,
+    )
 
 
 # ---------------------------------------------------------------- Components
