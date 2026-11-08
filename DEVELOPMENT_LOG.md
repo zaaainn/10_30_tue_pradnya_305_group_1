@@ -283,3 +283,9 @@
 - **Deployment setup:** Added a Render Blueprint for the Streamlit web service, with the required public host binding and Render-provided port. Added `.python-version` to select Python 3.13, matching the local environment.
 - **Documentation:** Updated the README with the Render setup path and free-service sleep and temporary-storage behavior.
 - **Verification:** Reviewed the Render start/build settings against Render's current web-service and Python-version documentation. Configuration remains local and has not been pushed or deployed.
+
+## 2026-11-08 — Resolve Render startup dependency
+
+- **Finding:** Render built and started the Streamlit service, but the first hosted page load reported `ModuleNotFoundError: six` while importing WNTR.
+- **Change:** Added `six==1.17.0` explicitly to the deployment requirements so the runtime includes the package needed by WNTR.
+- **Next check:** Confirm the redeployed page opens and displays the irrigation dashboard.
