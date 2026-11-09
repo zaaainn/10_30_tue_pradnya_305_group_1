@@ -104,6 +104,17 @@ h1, h2, h3, p { margin-top: 0; }
 .map-image { object-fit: cover; }
 .map-overlay { pointer-events: none; }
 .map-disclaimer { position: absolute; top: 15px; left: 15px; width: max-content; max-width: calc(100% - 30px); padding: 9px 12px; border: 1px solid rgba(255,255,255,.7); border-radius: 8px; background: rgba(13,20,34,.9); color: white; font-size: 9px; line-height: 1.4; font-weight: 800; letter-spacing: .05em; box-shadow: 0 4px 12px rgba(0,0,0,.18); }
+.study-area-card { padding: 12px; }
+.study-area-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(250px, .65fr); gap: 16px; }
+.study-context-map { position: relative; min-height: 430px; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card-soft); }
+.study-context-image { display: block; width: 100%; height: 100%; min-height: 430px; object-fit: cover; }
+.boundary-panel { min-height: 430px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-soft); text-align: center; }
+.boundary-panel h3 { margin: 18px 0 8px; font-size: 15px; }
+.boundary-panel p { margin: 5px 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.radius-diagram { position: relative; width: 190px; height: 190px; display: grid; place-items: center; border: 2px dashed var(--accent); border-radius: 50%; background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+.radius-diagram::before { content: ""; position: absolute; width: 10px; height: 10px; left: calc(50% - 5px); top: calc(50% - 5px); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 6px var(--card); }
+.boundary-center-label { position: absolute; top: calc(50% + 14px); color: var(--text); font-size: 10px; font-weight: 700; }
+.boundary-radius-label { position: absolute; top: 13px; left: 50%; padding: 4px 8px; border-radius: 99px; background: var(--card); color: var(--accent-ink); font-size: 10px; font-weight: 800; transform: translateX(-50%); }
 .footnote { margin: 12px 2px 22px; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .pipeline-controls { display: grid; grid-template-columns: repeat(5, minmax(120px,1fr)); }
 .scenario-summary { min-height: 33px; margin: 3px 0 12px; }
@@ -162,6 +173,9 @@ h1, h2, h3, p { margin-top: 0; }
   .topbar { margin-inline: -23px; padding-inline: 24px; }
   .metric-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .chart-grid.two { grid-template-columns: 1fr; }
+  .study-area-layout { grid-template-columns: 1fr; }
+  .study-context-map, .study-context-image { min-height: 320px; }
+  .boundary-panel { min-height: 290px; }
   .pipeline-controls { grid-template-columns: repeat(3, minmax(120px,1fr)); }
 }
 @media (max-width: 700px) {

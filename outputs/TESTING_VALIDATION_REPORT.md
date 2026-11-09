@@ -48,6 +48,12 @@ The full evaluation was run twice. The second run produced the same prediction C
 
 **Iteration decision:** keep the held-out night results untouched for reporting rather than tuning model or threshold settings against the test set. For the next iteration, add explicit zero-demand scenarios, investigate the normal-operation false warnings and mild-clog errors using training/validation data, then evaluate any revised version on a fresh held-out test set. Measure dashboard end-to-end response time separately in the browser.
 
+## Dashboard update and retest — 9 November 2026
+
+The Study area page now shows the geographic context image and a separate schematic 3 km boundary, without the simulated pipeline overlay or schedule/hour selectors. Pipeline view remains the place to inspect the simulated source, manifold, zones, readings and scenario controls. Method comparison now calls out the Random Forest's measured advantages while retaining the baseline's location and false-warning advantages, and links to this report. The results displayed on the page use the same held-out evaluation summarized above; no scores or source readings were altered.
+
+After the page separation and report link were added, the local dataset and dashboard validation suite passed **8 tests in 9.975 seconds**. This includes checks that Study area no longer contains a pipeline overlay, Pipeline view still renders its network controls, Method comparison renders, and the report URL returns the current report. This is local verification only; the hosted Render deployment still needs to complete successfully.
+
 ## Evidence files
 
 - `outputs/method_comparison_metrics.json` — machine-readable metric summary.

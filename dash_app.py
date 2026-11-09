@@ -143,6 +143,27 @@ def map_component(row: pd.Series, highlighted_zone: str | None = None):
     ], className="map-stage")
 
 
+def study_area_component():
+    """Geographic context and a schematic boundary, without the simulated pipe layer."""
+    return html.Div([
+        html.Div([
+            html.Img(src="/assets/uow_dubai_context.png", className="study-context-image",
+                     alt="Geographic context around UOW Dubai; no simulated pipe layer"),
+            html.Div("GEOGRAPHIC CONTEXT · NO SIMULATED PIPELINES", className="map-disclaimer"),
+        ], className="study-context-map"),
+        html.Div([
+            html.Span("STUDY BOUNDARY", className="finding-kicker"),
+            html.Div([
+                html.Div("UOW Dubai", className="boundary-center-label"),
+                html.Div("3 km", className="boundary-radius-label"),
+            ], className="radius-diagram"),
+            html.H3("Illustrative 3 km radius"),
+            html.P("The circle represents the study boundary around the UOW Dubai reference point. It is schematic and not to scale."),
+            html.P("Simulated pipes, zones and readings are shown separately in Pipeline view."),
+        ], className="boundary-panel"),
+    ], className="study-area-layout")
+
+
 def bar_figure(frame, x, y, color, barmode="group", horizontal=False):
     if horizontal:
         fig = px.bar(frame, x=x, y=y, color=color, barmode=barmode, orientation="h",
@@ -181,26 +202,14 @@ def confusion_figure(frame, prediction_column, title):
 def render_page(page: str):
     data = dataset()
     if page == "Study area":
-        normal = data[data.Condition == "normal"]
-        schedules = sorted(normal.Schedule.unique())
-        schedule = "morning" if "morning" in schedules else schedules[0]
-        hour_values = sorted(normal.loc[normal.Schedule == schedule, "Hour"].unique())
-        active_rows = normal.loc[(normal.Schedule == schedule) & (normal.Flow_ZoneA_L_min + normal.Flow_ZoneB_L_min + normal.Flow_ZoneC_L_min > 0)]
-        default_hour = int(active_rows.Hour.min()) if not active_rows.empty else int(hour_values[0])
-        row = normal.loc[(normal.Schedule == schedule) & (normal.Hour == default_hour)].iloc[0]
         return html.Div([
-            section_heading("Urban water · simulation workspace", "Study area", "Three-zone irrigation diagnosis · simulated network and readings"),
+            section_heading("Urban water · geographic context", "Study area", "Illustrative 3 km study boundary around the UOW Dubai reference point"),
             card([html.Div([html.Span("i", className="notice-icon"), html.Div([
-                html.Strong("Simulation context"),
-                html.P("The geographic image is for context. The source, manifold, zones, pipe positions and readings are illustrative simulation assumptions, not UOW infrastructure."),
+                html.Strong("Geographic context only"),
+                html.P("This view shows the study area and its schematic boundary. It does not display pipe routes, irrigation zones or sensor readings."),
             ])], className="notice-content")], "notice-card"),
-            html.Div([
-                dropdown("Baseline schedule", "study-schedule", schedules, schedule),
-                dropdown("Simulation hour", "study-hour", hour_values, default_hour),
-                html.Div([html.Span("3", className="stat-badge"), html.Span("simulated zones")], className="map-stat"),
-            ], className="control-row study-controls"),
-            card(html.Div(id="study-map", children=map_component(row)), "map-card"),
-            html.P("Illustrative network topology over geographic context. All displayed readings come from the project simulation.", className="footnote"),
+            card(study_area_component(), "card study-area-card"),
+            html.P("The 3 km boundary is a study assumption for context; it does not describe real irrigation infrastructure.", className="footnote"),
         ], className="page-view")
     if page == "Pipeline view":
         schedules = sorted(data.Schedule.unique())
@@ -384,20 +393,6 @@ def draw_notification(state):
     state = state or {"open": False, "message": "No new diagnosis alerts."}
     content = [html.Strong("Notifications"), html.P(state.get("message", "No new diagnosis alerts."))]
     return content, "notification-panel", {"display": "block" if state.get("open") else "none"}
-
-
-@callback(Output("study-map", "children"), Input("study-schedule", "value"), Input("study-hour", "value"))
-def update_study_map(schedule, hour):
-    data = dataset()
-    row = data.loc[(data.Condition == "normal") & (data.Schedule == schedule) & (data.Hour == hour)].iloc[0]
-    return map_component(row)
-
-
-@callback(Output("study-hour", "options"), Output("study-hour", "value"), Input("study-schedule", "value"), State("study-hour", "value"))
-def update_study_hours(schedule, current):
-    hours = sorted(dataset().loc[(dataset().Condition == "normal") & (dataset().Schedule == schedule), "Hour"].unique())
-    value = current if current in hours else hours[0]
-    return [{"label": f"Hour {int(h)}", "value": int(h)} for h in hours], value
 
 
 @callback(Output("pipeline-hour", "options"), Output("pipeline-hour", "value"),
