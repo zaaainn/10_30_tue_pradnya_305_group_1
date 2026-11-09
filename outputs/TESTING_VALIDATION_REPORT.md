@@ -10,6 +10,8 @@ Both methods were run against the same 114 held-out night-schedule records, cove
 
 ## Main results
 
+**Key finding:** On the held-out night schedule, Random Forest achieved higher overall classification accuracy and macro F1 than the schedule-aware threshold baseline. It also detected every simulated fault case, had higher overall leak recall and higher clog recall at each reported severity. This supports Random Forest as the stronger overall fault-classification method in these tested scenarios. The threshold baseline was better at locating faults and avoiding false warnings, so those trade-offs remain part of the result.
+
 | Measure | Random Forest | Schedule-aware threshold |
 |---|---:|---:|
 | Classification accuracy | 85.1% | 71.1% |
@@ -23,6 +25,8 @@ Both methods were run against the same 114 held-out night-schedule records, cove
 | Mean backend processing time per record | 1.616 ms on this run | 0.191 ms on this run |
 
 The fault missed-rate counts faults for which the method produced no alert. A wrong fault-type prediction can still count as an alert, so classification errors are also reported separately through precision, recall and F1.
+
+For the research question, the most relevant overall measures are classification accuracy and macro F1: both are higher for Random Forest in this held-out test. The fault-location and false-warning measures show where the simpler threshold baseline remains useful. The measurements do not establish that either method will perform the same way with field data.
 
 ## Test cases: AI-suggested and manually selected
 

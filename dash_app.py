@@ -10,6 +10,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from dash import Dash, Input, Output, State, callback, dash_table, dcc, html, no_update
+from flask import send_file
 
 from diagnosis import DEFAULT_MODEL_PATH, load_model, predict_records
 from schedule_aware_threshold import predict_thresholds
@@ -30,6 +31,13 @@ COLORS = {
 
 app = Dash(__name__, title="Irrigation Twin", assets_folder="assets", suppress_callback_exceptions=True)
 server = app.server
+
+
+@server.get("/testing-report")
+def serve_testing_report():
+    """Serve the current validation report from the deployed project files."""
+    report_path = ROOT / "outputs" / "TESTING_VALIDATION_REPORT.md"
+    return send_file(report_path, mimetype="text/markdown", as_attachment=False)
 
 
 @lru_cache(maxsize=1)
@@ -225,6 +233,8 @@ def render_page(page: str):
     if page == "Method comparison":
         predictions, metrics = comparison()
         rf, baseline = metrics["random_forest"], metrics["schedule_aware_threshold"]
+        fault_record_count = int((predictions["Condition"] != "normal").sum())
+        random_forest_alerted_faults = fault_record_count - round(rf["missed_fault_rate"] * fault_record_count)
         summary = [
             metric_card("Random Forest macro F1", f"{rf['macro_f1']:.1%}", "Primary diagnosis model", "blue"),
             metric_card("Fault location accuracy", f"{rf['fault_location_accuracy']:.1%}", "Random Forest on held-out faults", "cyan"),
@@ -250,6 +260,13 @@ def render_page(page: str):
         return html.Div([
             section_heading("Model evaluation", "Method comparison", "Random Forest is the primary method; the schedule-aware threshold is the benchmark"),
             card([html.Div([html.Span("Held-out evaluation"), html.P(f"{metrics['test_rows']} night-schedule records · {metrics['test_scenario_configurations']} scenario configurations"), html.Small("Night profiles were held out from Random Forest training.")], className="notice-content")], "notice-card"),
+            card(html.Div([
+                html.Span("Overall result", className="finding-kicker"),
+                html.H3("Random Forest led on overall fault classification"),
+                html.P(f"On this held-out test, Random Forest scored {rf['accuracy']:.1%} accuracy and {rf['macro_f1']:.1%} macro F1, compared with {baseline['accuracy']:.1%} and {baseline['macro_f1']:.1%} for the schedule-aware threshold. It flagged {random_forest_alerted_faults}/{fault_record_count} simulated fault records and had higher clog recall at all three tested severity levels."),
+                html.P(f"Trade-offs: the threshold baseline had higher fault-location accuracy ({baseline['fault_location_accuracy']:.1%} vs {rf['fault_location_accuracy']:.1%}) and no false warnings on the six normal records; Random Forest produced three false warnings. Results apply only to these synthetic scenarios."),
+                html.A("Read testing, validation and iteration report ↗", href="/testing-report", target="_blank", className="report-link"),
+            ], className="finding-copy"), "finding-card"),
             html.Div(summary, className="metric-grid four"),
             html.Div([card([html.H3("Diagnosis quality and alert risk"), dcc.Graph(figure=bar_figure(performance, "Score", "Measure", "Method", horizontal=True), config={"displayModeBar": False})]),
                       card([html.H3("Precision and recall by condition"), dcc.Graph(figure=bar_figure(classscores, "Score", "Condition", "Series"), config={"displayModeBar": False})])], className="chart-grid two"),

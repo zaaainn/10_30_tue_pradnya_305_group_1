@@ -9,11 +9,11 @@ import numpy as np
 import pandas as pd
 
 from diagnosis import DEFAULT_MODEL_PATH, load_model, predict_records
-from generate_labeled_dataset import DEFAULT_OUTPUT as DEFAULT_DATASET
 from schedule_aware_threshold import predict_thresholds
 
 
 ROOT = Path(__file__).resolve().parent
+DEFAULT_DATASET = ROOT / "outputs" / "labeled_fault_scenarios.csv"
 DEFAULT_PREDICTIONS = ROOT / "outputs" / "method_comparison_predictions.csv"
 DEFAULT_METRICS = ROOT / "outputs" / "method_comparison_metrics.json"
 CONDITION_CLASSES = ("normal", "leak", "clog")
