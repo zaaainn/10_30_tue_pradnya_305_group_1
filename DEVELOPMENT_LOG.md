@@ -1,5 +1,13 @@
 # Development Log
 
+## 2026-11-10 — Separate external data candidates from simulated project data
+
+- **Change:** Added `DATA_PROVENANCE.md` to distinguish the WNTR-generated project dataset and results from external measured irrigation and laboratory leak sources. Linked the data-status note from the README.
+- **External sources reviewed:** A measured drip-irrigation pressure/flow dataset from Mendeley Data; the physical LeakTestbed leak/no-leak benchmark; and a field study reporting measured emitter flows and observed clogging.
+- **Finding:** No reviewed source supplies the complete project labels (normal, leak, clog) together with schedules, fault severity, and location. The Mendeley source is real irrigation sensor data but does not provide labelled fault classes. LeakTestbed has controlled physical leak labels but is not an irrigation network and has no clog or watering-schedule labels. The field clogging study is relevant empirical evidence but is not a complete labelled project dataset.
+- **Data decision:** Do not describe WNTR as external data or merge unlike sources as though they were one dataset. The currently published model and evaluation remain synthetic. Inspect external files and confirm the external/simulated data plan with the instructor before retraining or changing reported results.
+- **Limitations:** Candidate files have not yet been downloaded, audited, or incorporated. The dashboard and evaluation outputs therefore still represent WNTR simulations only.
+
 ## 2026-10-29 — Initial normal-operation simulation
 
 - **Change:** Added `first_simulation.py`, a small WNTR/EPANET model with a source, a manifold, and three irrigation zones using an illustrative morning demand pattern.

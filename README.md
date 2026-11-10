@@ -12,6 +12,7 @@ This repository contains a simulation-based university prototype for distinguish
 - The simulator currently includes illustrative morning, afternoon, and night demand profiles. Their multipliers are synthetic assumptions, not measured municipal schedules.
 - The classifier will be compared with a schedule-aware threshold alert using the same test scenarios.
 - Pipe dimensions and demands are prototype assumptions selected to produce visible simulated hydraulic changes; they are not calibrated field values.
+- **Data status:** WNTR is the simulator, not an external dataset. The current scenario CSV, model, comparison results, and dashboard readings are synthetic. External measured sources have been reviewed but are not yet included in those results. See [DATA_PROVENANCE.md](DATA_PROVENANCE.md) for the source-by-source distinction and next steps.
 
 ## Setup
 
